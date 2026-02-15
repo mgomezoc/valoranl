@@ -4,7 +4,7 @@
                 <div class="cs_footer_col">
                     <div class="cs_footer_widget">
                         <div class="cs_footer_widget">
-                            <h2 class="cs_footer_widget_title cs_fs_18 cs_white_color cs_semibold wow fadeInDown">Dreamwell Properties</h2>
+                            <h2 class="cs_footer_widget_title cs_fs_18 cs_white_color cs_semibold wow fadeInDown">ValoraNL Properties</h2>
                             <ul class="cs_footer_widget_address cs_mp_0">
                                 <li><i class="fa-solid fa-location-dot"></i>Realtor Office Building 5F <br> 123 Anywhere St., Any City, 12345 Any State</li>
                                 <li><a href="tel:+444547800112" aria-label="Phone Link"><i class="fa-solid fa-phone"></i>+44 454 7800 112</a></li>
@@ -41,7 +41,7 @@
                 </div>
                 <div class="cs_footer_col">
                     <div class="cs_newsletter cs_style_1">
-                        <h2 class="cs_newsletter_title cs_fs_24 cs_semibold cs_white_color cs_mb_53 cs_mb_lg_30 wow fadeInDown">Get the latest information about properties from Dreamwell</h2>
+                        <h2 class="cs_newsletter_title cs_fs_24 cs_semibold cs_white_color cs_mb_53 cs_mb_lg_30 wow fadeInDown">Get the latest information about properties from ValoraNL</h2>
                         <form action="#" class="cs_newsletter_form cs_radius_10 wow fadeInUp">
                             <input type="email" name="email" autocomplete="given-name" class="cs_newsletter_input cs_radius_7" placeholder="Enter your email here">
                             <button type="submit" aria-label="Subscribe Button" class="cs_btn cs_style_1 cs_accent_bg cs_white_color cs_medium cs_radius_7">

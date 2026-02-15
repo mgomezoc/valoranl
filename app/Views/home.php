@@ -2251,7 +2251,7 @@
                 </div>
                 <div class="col-lg-6">
                     <div class="cs_about_text">
-                        <h2 class="cs_fs_48 cs_semibold cs_mb_46 cs_mb_lg_30  wow fadeInDown">Welcome to Dreamwell</h2>
+                        <h2 class="cs_fs_48 cs_semibold cs_mb_46 cs_mb_lg_30  wow fadeInDown">Welcome to ValoraNL</h2>
                         <p class="cs_fs_24 cs_mb_57 cs_mb_lg_36">We are a real estate company that provides the convenience of searching for properties in various regions and countries. Together with professional agents, there is no house that you can't get.</p>
                         <a href="about.html" area-label="Click to visit About Page" class="cs_btn cs_style_1 cs_accent_bg cs_medium cs_white_color cs_radius_7 wow fadeInUp">
                             <span class="cs_btn_text">About More</span>
@@ -2308,7 +2308,7 @@
                 <div class="row align-items-center">
                     <div class="col-xxl-3 col-lg-4">
                         <div class="cs_section_heading cs_style_1 cs_mb_31">
-                            <h2 class="cs_fs_48 cs_semibold mb-0 wow fadeInLeft">Satisfied Dreamwell’s Clients</h2>
+                            <h2 class="cs_fs_48 cs_semibold mb-0 wow fadeInLeft">Satisfied ValoraNL’s Clients</h2>
                         </div>
                     </div>
                     <div class="col-xxl-8 col-lg-8 offset-xxl-1">
@@ -2326,7 +2326,7 @@
                                                     <p class="cs_fs_14 mb-0">Jakarta, Indonesia</p>
                                                 </div>
                                             </div>
-                                            <blockquote>I had quite a hard time selling my house in the city even though my family and I had to immediately pay off the money to buy a house in the countryside. Luckily, Dreamwell agents helped sell our house at a decent price and fast.</blockquote>
+                                            <blockquote>I had quite a hard time selling my house in the city even though my family and I had to immediately pay off the money to buy a house in the countryside. Luckily, ValoraNL agents helped sell our house at a decent price and fast.</blockquote>
                                             <div class="cs_rating cs_accent_color" data-rating="5">
                                                 <div class="cs_rating_percentage"></div>
                                             </div>
@@ -2343,7 +2343,7 @@
                                                     <p class="cs_fs_14 mb-0">New York, USA</p>
                                                 </div>
                                             </div>
-                                            <blockquote>I thought it would be hard to find a house abroad, but Dreamwell agent made it happen with all its conveniences.</blockquote>
+                                            <blockquote>I thought it would be hard to find a house abroad, but ValoraNL agent made it happen with all its conveniences.</blockquote>
                                             <div class="cs_rating cs_accent_color" data-rating="5">
                                                 <div class="cs_rating_percentage"></div>
                                             </div>
@@ -2360,7 +2360,7 @@
                                                     <p class="cs_fs_14 mb-0">Johor, Malaysia</p>
                                                 </div>
                                             </div>
-                                            <blockquote>Even though I'm a boy, my parents are worried that I won't find a decent place to live when studying abroad. Thanks to Dreamwell, my parents don't have to worry about that anymore.</blockquote>
+                                            <blockquote>Even though I'm a boy, my parents are worried that I won't find a decent place to live when studying abroad. Thanks to ValoraNL, my parents don't have to worry about that anymore.</blockquote>
                                             <div class="cs_rating cs_accent_color" data-rating="5">
                                                 <div class="cs_rating_percentage"></div>
                                             </div>
@@ -2390,7 +2390,7 @@
                                                     <p class="cs_fs_14 mb-0">London, UK</p>
                                                 </div>
                                             </div>
-                                            <blockquote>I thought it would be hard to find a house abroad, but Dreamwell agent made it happen with all its conveniences.</blockquote>
+                                            <blockquote>I thought it would be hard to find a house abroad, but ValoraNL agent made it happen with all its conveniences.</blockquote>
                                             <div class="cs_rating cs_accent_color" data-rating="5">
                                                 <div class="cs_rating_percentage"></div>
                                             </div>
@@ -2423,7 +2423,7 @@
                 </div>
                 <div class="cs_cta_text_wrapper">
                     <div class="cs_cta_text cs_accent_bg cs_radius_15 cs_center_column text-center position-relative">
-                        <h2 class="cs_fs_48 cs_semibold cs_white_color cs_mb_50 cs_mb_lg_30 wow fadeInDown">Let’s Find Your Dream House <br> with Dreamwell!</h2>
+                        <h2 class="cs_fs_48 cs_semibold cs_white_color cs_mb_50 cs_mb_lg_30 wow fadeInDown">Let’s Find Your Dream House <br> with ValoraNL!</h2>
                         <a href="property-grid.html" aria-label="Click to visit all property" class="cs_btn cs_style_1 cs_white_bg cs_accent_color cs_medium cs_radius_7 wow fadeInUp">
                             <span class="cs_btn_text">View More</span>
                         </a>
@@ -2448,7 +2448,7 @@
         <div class="cs_height_120 cs_height_lg_80"></div>
         <div class="container">
             <div class="cs_section_heading cs_style_1 text-center">
-                <h2 class="cs_fs_48 cs_semibold mb-0 wow zoomIn">News from Dreamwell</h2>
+                <h2 class="cs_fs_48 cs_semibold mb-0 wow zoomIn">News from ValoraNL</h2>
             </div>
             <div class="cs_height_80 cs_height_lg_50"></div>
             <div class="row cs_row_gap_20 cs_gap_y_30">
@@ -2462,7 +2462,7 @@
                             <div class="cs_post_meta_wrapper cs_mb_12">
                                 <div class="cs_post_meta">
                                     <span><i class="fa-solid fa-circle-user"></i></span>
-                                    <span>Dreamwell Team</span>
+                                    <span>ValoraNL Team</span>
                                 </div>
                                 <div class="cs_post_meta">
                                     <span><i class="fa-solid fa-clock"></i></span>
@@ -2483,7 +2483,7 @@
                             <div class="cs_post_meta_wrapper cs_mb_12">
                                 <div class="cs_post_meta">
                                     <span><i class="fa-solid fa-circle-user"></i></span>
-                                    <span>Dreamwell Team</span>
+                                    <span>ValoraNL Team</span>
                                 </div>
                                 <div class="cs_post_meta">
                                     <span><i class="fa-solid fa-clock"></i></span>
@@ -2504,7 +2504,7 @@
                             <div class="cs_post_meta_wrapper cs_mb_12">
                                 <div class="cs_post_meta">
                                     <span><i class="fa-solid fa-circle-user"></i></span>
-                                    <span>Dreamwell Team</span>
+                                    <span>ValoraNL Team</span>
                                 </div>
                                 <div class="cs_post_meta">
                                     <span><i class="fa-solid fa-clock"></i></span>
@@ -2534,7 +2534,7 @@
                         <div class="cs_accordian cs_style_1 cs_white_bg">
                             <div class="cs_accordian_overlay cs_accent_bg position-absolute"></div>
                             <div class="cs_accordian_head">
-                                <h3 class="cs_accordian_title cs_fs_24 cs_medium cs_body_font mb-0">How to deal with Dreamwell agents?</h3>
+                                <h3 class="cs_accordian_title cs_fs_24 cs_medium cs_body_font mb-0">How to deal with ValoraNL agents?</h3>
                                 <span class="cs_accordian_toggle cs_center cs_accent_color cs_radius_50 position-absolute"><i class="fa-solid fa-arrow-down"></i></span>
                             </div>
                             <div class="cs_accordian_body">
@@ -2554,7 +2554,7 @@
                         <div class="cs_accordian cs_style_1 cs_white_bg">
                             <div class="cs_accordian_overlay cs_accent_bg position-absolute"></div>
                             <div class="cs_accordian_head">
-                                <h3 class="cs_accordian_title cs_fs_24 cs_medium cs_body_font mb-0">What if I want to sell my property in Dreamwell?</h3>
+                                <h3 class="cs_accordian_title cs_fs_24 cs_medium cs_body_font mb-0">What if I want to sell my property in ValoraNL?</h3>
                                 <span class="cs_accordian_toggle cs_center cs_accent_color cs_radius_50 position-absolute"><i class="fa-solid fa-arrow-down"></i></span>
                             </div>
                             <div class="cs_accordian_body">
