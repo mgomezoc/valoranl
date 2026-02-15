@@ -32,6 +32,7 @@
     const $calcPpuAdjusted = $('#calc-ppu-adjusted');
     const $calcPpuRange = $('#calc-ppu-range');
     const $calcFormulas = $('#calc-formulas');
+    const $calcAdvisorDetails = $('#calc-advisor-details');
 
     const formatCurrency = (amount) => {
         if (amount === null || amount === undefined || Number.isNaN(Number(amount))) {
@@ -162,6 +163,7 @@
         const ppuStats = breakdown.ppu_stats || {};
         const formulas = breakdown.formula || {};
         const humanSteps = Array.isArray(breakdown.human_steps) ? breakdown.human_steps : [];
+        const advisorSteps = Array.isArray(breakdown.advisor_detail_steps) ? breakdown.advisor_detail_steps : [];
 
         const methodLabel = breakdown.method === 'synthetic_fallback_v1'
             ? 'Estimación de apoyo (sin suficientes comparables)'
@@ -191,6 +193,21 @@
             ]).map((item) => `<li>${item}</li>`).join('');
 
         $calcFormulas.html(formulaItems);
+
+        const valuationFactors = breakdown.valuation_factors || {};
+        const advisorFallback = [
+            `Factor Ross-Heidecke: ${formatNumber(valuationFactors.ross_heidecke, 4)}.`,
+            `Factor de negociación: ${formatNumber(valuationFactors.negotiation, 4)}.`,
+            `Factor de equipamiento: ${formatNumber(valuationFactors.equipment, 4)}.`,
+            `Factor combinado aplicado: ${formatNumber(valuationFactors.combined_adjustment_factor, 4)}.`,
+            `Cálculo base: ${formulas.estimated_value || 'N/D'}.`,
+        ];
+
+        const advisorItems = (advisorSteps.length > 0 ? advisorSteps : advisorFallback)
+            .map((item) => `<li>${item}</li>`)
+            .join('');
+
+        $calcAdvisorDetails.html(advisorItems);
     };
 
     const renderResult = (response) => {
