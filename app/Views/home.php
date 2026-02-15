@@ -1,109 +1,8 @@
-<!DOCTYPE html>
-<html class="no-js" lang="en">
+<?= $this->extend('layouts/main') ?>
 
-<!-- Mirrored from dreamwell-laravel.embexel.com/ by HTTrack Website Copier/3.x [XR&CO'2014], Sun, 15 Feb 2026 18:26:54 GMT -->
-<!-- Added by HTTrack -->
-<meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<?= $this->section('title') ?><?= esc($pageTitle ?? 'ValoraNL') ?><?= $this->endSection() ?>
 
-<head>
-    <!-- Meta Tags -->
-    <meta charset="utf-8">
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Dreamwell – Real Estate Website HTML Template">
-    <meta name="author" content="Laralink">
-    <!-- Favicon Icon -->
-    <link rel="icon" href="assets/img/icons/favicon.svg">
-    <!-- Site Title -->
-    <title>Dreamwell – Real Estate Website Laravel Template</title>
-    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/css/fontawesome.min.css">
-    <link rel="stylesheet" href="assets/css/slick.min.css">
-    <link rel="stylesheet" href="assets/css/light-gallery.min.css">
-    <link rel="stylesheet" href="assets/css/jquery-ui.min.css">
-    <link rel="stylesheet" href="assets/css/odometer.css">
-    <link rel="stylesheet" href="assets/css/animate.css">
-    <link rel="stylesheet" href="assets/css/style.css">
-</head>
-
-<body>
-    <!-- Start Preloader -->
-    <div class="cs_preloader cs_center">
-        <div class="cs_preloader_in cs_center cs_radius_50">
-            <span class="cs_center cs_white_bg cs_accent_color">
-                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M24 7.96075V21.317C23.9993 22.0283 23.7181 22.7104 23.2182 23.2134C22.7182 23.7164 22.0404 23.9993 21.3333 24H16.8889C16.4174 24 15.9652 23.8115 15.6318 23.4761C15.2984 23.1407 15.1111 22.6857 15.1111 22.2113V17.2924C15.1111 17.0552 15.0175 16.8277 14.8508 16.66C14.6841 16.4923 14.458 16.398 14.2222 16.398H9.77778C9.54203 16.398 9.31594 16.4923 9.14924 16.66C8.98254 16.8277 8.88889 17.0552 8.88889 17.2924V22.2113C8.88889 22.6857 8.70159 23.1407 8.36819 23.4761C8.03479 23.8115 7.58261 24 7.11111 24H2.66667C1.95964 23.9993 1.28177 23.7164 0.781828 23.2134C0.281884 22.7104 0.000705969 22.0283 0 21.317V7.96075C0.000665148 7.65188 0.0804379 7.34839 0.231621 7.07957C0.382805 6.81075 0.600296 6.58567 0.863111 6.42605L11.0853 0.255041C11.3617 0.0881572 11.6779 0 12.0002 0C12.3225 0 12.6388 0.0881572 12.9151 0.255041L23.1373 6.42605C23.4001 6.58573 23.6175 6.81083 23.7686 7.07965C23.9197 7.34846 23.9994 7.65192 24 7.96075Z" fill="currentColor" />
-                </svg>
-            </span>
-        </div>
-    </div>
-    <!-- End Preloader -->
-
-    <!-- Start Header Section -->
-
-    <!-- Start Header Section -->
-    <header class="cs_site_header cs_style_1 cs_sticky_header">
-        <div class="cs_main_header">
-            <div class="container">
-                <div class="cs_main_header_in">
-                    <div class="cs_main_header_left">
-                        <a
-                            class="cs_site_branding"
-                            href="index.html"
-                            aria-label="Click to visit home page">
-                            <img src="assets/img/logo.svg" alt="Logo">
-                        </a>
-                        <nav class="cs_nav cs_heading_color">
-                            <ul class="cs_nav_list">
-                                <li class="menu-item-has-children">
-                                    <a href="#" aria-label="Home">Home</a>
-                                    <ul>
-                                        <li><a href="index.html" aria-label="Click to visit home default page">Home Default</a></li>
-                                        <li><a href="home-v2.html" aria-label="Click to visit home V2 page">Home V2</a></li>
-                                        <li><a href="home-v3.html" aria-label="Click to visit home V3 page">Home V3</a></li>
-                                    </ul>
-                                </li>
-                                <li class="menu-item-has-children">
-                                    <a href="#">Listing</a>
-                                    <ul>
-                                        <li><a href="property-grid.html" aria-label="Click to visit all property page">Property Grid View</a></li>
-                                        <li><a href="property-map.html" aria-label="Click to visit property map view page">Property Map View</a></li>
-                                        <li><a href="property-details.html" aria-label="Click to visit property details page">Property Details</a></li>
-                                        <li><a href="property-details-v2.html" aria-label="Click to visit property details V2 page">Property Details V2</a></li>
-                                    </ul>
-                                </li>
-                                <li><a href="about.html" aria-label="Click to visit about page">About</a></li>
-                                <li><a href="about.html" aria-label="Click to visit contact page">Contact</a></li>
-                                <li class="menu-item-has-children">
-                                    <a href="#">Blog</a>
-                                    <ul>
-                                        <li><a href="blog.html" aria-label="Click to visit all posts">Blog</a></li>
-                                        <li><a href="blog/detail.html" aria-label="Click to read post details">Blog Details</a></li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </nav>
-                    </div>
-                    <div class="cs_main_header_right">
-                        <a href="sign-up.html" aria-label="Sign In Button" class="cs_btn cs_style_1 cs_accent_bg cs_fs_15 cs_medium cs_white_color cs_radius_7">
-                            <span class="cs_btn_icon"><i class="fa-solid fa-circle-user"></i></span>
-                            <span class="cs_btn_text">Sign In</span>
-                        </a>
-                        <a href="profile.html" aria-label="Add Property Button" class="cs_btn cs_style_1 cs_type_1 cs_accent_color cs_fs_15 cs_medium cs_radius_7">
-                            <span class="cs_btn_icon"><i class="fa-solid fa-circle-plus"></i></span>
-                            <span class="cs_btn_text">Add Property</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-    <div class="cs_height_116 cs_height_lg_110"></div>
-
-    <!-- End Header Section --> <!-- Header Section End -->
-
-    <!-- Start Main Content -->
-
+<?= $this->section('content') ?>
     <!-- Start Hero Section -->
     <section class="cs_hero cs_style_1">
         <div class="container">
@@ -2352,7 +2251,7 @@
                 </div>
                 <div class="col-lg-6">
                     <div class="cs_about_text">
-                        <h2 class="cs_fs_48 cs_semibold cs_mb_46 cs_mb_lg_30  wow fadeInDown">Welcome to Dreamwell</h2>
+                        <h2 class="cs_fs_48 cs_semibold cs_mb_46 cs_mb_lg_30  wow fadeInDown">Welcome to ValoraNL</h2>
                         <p class="cs_fs_24 cs_mb_57 cs_mb_lg_36">We are a real estate company that provides the convenience of searching for properties in various regions and countries. Together with professional agents, there is no house that you can't get.</p>
                         <a href="about.html" area-label="Click to visit About Page" class="cs_btn cs_style_1 cs_accent_bg cs_medium cs_white_color cs_radius_7 wow fadeInUp">
                             <span class="cs_btn_text">About More</span>
@@ -2409,7 +2308,7 @@
                 <div class="row align-items-center">
                     <div class="col-xxl-3 col-lg-4">
                         <div class="cs_section_heading cs_style_1 cs_mb_31">
-                            <h2 class="cs_fs_48 cs_semibold mb-0 wow fadeInLeft">Satisfied Dreamwell’s Clients</h2>
+                            <h2 class="cs_fs_48 cs_semibold mb-0 wow fadeInLeft">Satisfied ValoraNL’s Clients</h2>
                         </div>
                     </div>
                     <div class="col-xxl-8 col-lg-8 offset-xxl-1">
@@ -2427,7 +2326,7 @@
                                                     <p class="cs_fs_14 mb-0">Jakarta, Indonesia</p>
                                                 </div>
                                             </div>
-                                            <blockquote>I had quite a hard time selling my house in the city even though my family and I had to immediately pay off the money to buy a house in the countryside. Luckily, Dreamwell agents helped sell our house at a decent price and fast.</blockquote>
+                                            <blockquote>I had quite a hard time selling my house in the city even though my family and I had to immediately pay off the money to buy a house in the countryside. Luckily, ValoraNL agents helped sell our house at a decent price and fast.</blockquote>
                                             <div class="cs_rating cs_accent_color" data-rating="5">
                                                 <div class="cs_rating_percentage"></div>
                                             </div>
@@ -2444,7 +2343,7 @@
                                                     <p class="cs_fs_14 mb-0">New York, USA</p>
                                                 </div>
                                             </div>
-                                            <blockquote>I thought it would be hard to find a house abroad, but Dreamwell agent made it happen with all its conveniences.</blockquote>
+                                            <blockquote>I thought it would be hard to find a house abroad, but ValoraNL agent made it happen with all its conveniences.</blockquote>
                                             <div class="cs_rating cs_accent_color" data-rating="5">
                                                 <div class="cs_rating_percentage"></div>
                                             </div>
@@ -2461,7 +2360,7 @@
                                                     <p class="cs_fs_14 mb-0">Johor, Malaysia</p>
                                                 </div>
                                             </div>
-                                            <blockquote>Even though I'm a boy, my parents are worried that I won't find a decent place to live when studying abroad. Thanks to Dreamwell, my parents don't have to worry about that anymore.</blockquote>
+                                            <blockquote>Even though I'm a boy, my parents are worried that I won't find a decent place to live when studying abroad. Thanks to ValoraNL, my parents don't have to worry about that anymore.</blockquote>
                                             <div class="cs_rating cs_accent_color" data-rating="5">
                                                 <div class="cs_rating_percentage"></div>
                                             </div>
@@ -2491,7 +2390,7 @@
                                                     <p class="cs_fs_14 mb-0">London, UK</p>
                                                 </div>
                                             </div>
-                                            <blockquote>I thought it would be hard to find a house abroad, but Dreamwell agent made it happen with all its conveniences.</blockquote>
+                                            <blockquote>I thought it would be hard to find a house abroad, but ValoraNL agent made it happen with all its conveniences.</blockquote>
                                             <div class="cs_rating cs_accent_color" data-rating="5">
                                                 <div class="cs_rating_percentage"></div>
                                             </div>
@@ -2524,7 +2423,7 @@
                 </div>
                 <div class="cs_cta_text_wrapper">
                     <div class="cs_cta_text cs_accent_bg cs_radius_15 cs_center_column text-center position-relative">
-                        <h2 class="cs_fs_48 cs_semibold cs_white_color cs_mb_50 cs_mb_lg_30 wow fadeInDown">Let’s Find Your Dream House <br> with Dreamwell!</h2>
+                        <h2 class="cs_fs_48 cs_semibold cs_white_color cs_mb_50 cs_mb_lg_30 wow fadeInDown">Let’s Find Your Dream House <br> with ValoraNL!</h2>
                         <a href="property-grid.html" aria-label="Click to visit all property" class="cs_btn cs_style_1 cs_white_bg cs_accent_color cs_medium cs_radius_7 wow fadeInUp">
                             <span class="cs_btn_text">View More</span>
                         </a>
@@ -2549,7 +2448,7 @@
         <div class="cs_height_120 cs_height_lg_80"></div>
         <div class="container">
             <div class="cs_section_heading cs_style_1 text-center">
-                <h2 class="cs_fs_48 cs_semibold mb-0 wow zoomIn">News from Dreamwell</h2>
+                <h2 class="cs_fs_48 cs_semibold mb-0 wow zoomIn">News from ValoraNL</h2>
             </div>
             <div class="cs_height_80 cs_height_lg_50"></div>
             <div class="row cs_row_gap_20 cs_gap_y_30">
@@ -2563,7 +2462,7 @@
                             <div class="cs_post_meta_wrapper cs_mb_12">
                                 <div class="cs_post_meta">
                                     <span><i class="fa-solid fa-circle-user"></i></span>
-                                    <span>Dreamwell Team</span>
+                                    <span>ValoraNL Team</span>
                                 </div>
                                 <div class="cs_post_meta">
                                     <span><i class="fa-solid fa-clock"></i></span>
@@ -2584,7 +2483,7 @@
                             <div class="cs_post_meta_wrapper cs_mb_12">
                                 <div class="cs_post_meta">
                                     <span><i class="fa-solid fa-circle-user"></i></span>
-                                    <span>Dreamwell Team</span>
+                                    <span>ValoraNL Team</span>
                                 </div>
                                 <div class="cs_post_meta">
                                     <span><i class="fa-solid fa-clock"></i></span>
@@ -2605,7 +2504,7 @@
                             <div class="cs_post_meta_wrapper cs_mb_12">
                                 <div class="cs_post_meta">
                                     <span><i class="fa-solid fa-circle-user"></i></span>
-                                    <span>Dreamwell Team</span>
+                                    <span>ValoraNL Team</span>
                                 </div>
                                 <div class="cs_post_meta">
                                     <span><i class="fa-solid fa-clock"></i></span>
@@ -2635,7 +2534,7 @@
                         <div class="cs_accordian cs_style_1 cs_white_bg">
                             <div class="cs_accordian_overlay cs_accent_bg position-absolute"></div>
                             <div class="cs_accordian_head">
-                                <h3 class="cs_accordian_title cs_fs_24 cs_medium cs_body_font mb-0">How to deal with Dreamwell agents?</h3>
+                                <h3 class="cs_accordian_title cs_fs_24 cs_medium cs_body_font mb-0">How to deal with ValoraNL agents?</h3>
                                 <span class="cs_accordian_toggle cs_center cs_accent_color cs_radius_50 position-absolute"><i class="fa-solid fa-arrow-down"></i></span>
                             </div>
                             <div class="cs_accordian_body">
@@ -2655,7 +2554,7 @@
                         <div class="cs_accordian cs_style_1 cs_white_bg">
                             <div class="cs_accordian_overlay cs_accent_bg position-absolute"></div>
                             <div class="cs_accordian_head">
-                                <h3 class="cs_accordian_title cs_fs_24 cs_medium cs_body_font mb-0">What if I want to sell my property in Dreamwell?</h3>
+                                <h3 class="cs_accordian_title cs_fs_24 cs_medium cs_body_font mb-0">What if I want to sell my property in ValoraNL?</h3>
                                 <span class="cs_accordian_toggle cs_center cs_accent_color cs_radius_50 position-absolute"><i class="fa-solid fa-arrow-down"></i></span>
                             </div>
                             <div class="cs_accordian_body">
@@ -2669,118 +2568,4 @@
         <div class="cs_height_130 cs_height_lg_80"></div>
     </section>
     <!-- End FAQ Section -->
-    <!-- Start Footer Section -->
-
-    <!-- End Main Content -->
-
-    <!-- Start Footer Section -->
-    <footer class="cs_footer cs_style_1 cs_heading_bg cs_gray_color">
-        <div class="container">
-            <div class="cs_footer_row">
-                <div class="cs_footer_col">
-                    <div class="cs_footer_widget">
-                        <div class="cs_footer_widget">
-                            <h2 class="cs_footer_widget_title cs_fs_18 cs_white_color cs_semibold wow fadeInDown">Dreamwell Properties</h2>
-                            <ul class="cs_footer_widget_address cs_mp_0">
-                                <li><i class="fa-solid fa-location-dot"></i>Realtor Office Building 5F <br> 123 Anywhere St., Any City, 12345 Any State</li>
-                                <li><a href="tel:+444547800112" aria-label="Phone Link"><i class="fa-solid fa-phone"></i>+44 454 7800 112</a></li>
-                                <li><a href="cdn-cgi/l/email-protection.html#83eaede5ece7e6f0e8c3c7ecede2f7faade0ecee" aria-label="Email Link"><i class="fa-solid fa-envelope"></i><span class="__cf_email__" data-cfemail="cea7a0a8a1aaabbda58e8aa1a0afbab7e0ada1a3">[email&#160;protected]</span></a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                <div class="cs_footer_col">
-                    <div class="cs_footer_widget">
-                        <h2 class="cs_footer_widget_title cs_fs_18 cs_white_color cs_semibold">Quick Links</h2>
-                        <ul class="cs_footer_widget_menu">
-                            <li><a href="about.html" aria-label="Page Link">About Us</a></li>
-                            <li><a href="#" aria-label="Page Link">Terms & Conditions</a></li>
-                            <li><a href="#" aria-label="Page Link">Guide</a></li>
-                            <li><a href="#" aria-label="Page Link">Support Center</a></li>
-                            <li><a href="blog.html" aria-label="Page Link">Blog</a></li>
-                            <li><a href="contact.html" aria-label="Page Link">Contact</a></li>
-                            <li><a href="#" aria-label="Page Link">Privacy Policy</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="cs_footer_col">
-                    <div class="cs_footer_widget">
-                        <h2 class="cs_footer_widget_title cs_fs_18 cs_white_color cs_semibold">Discover</h2>
-                        <ul class="cs_footer_widget_menu">
-                            <li>Asia</li>
-                            <li>Africa</li>
-                            <li>America</li>
-                            <li>Australia</li>
-                            <li>Europe</li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="cs_footer_col">
-                    <div class="cs_newsletter cs_style_1">
-                        <h2 class="cs_newsletter_title cs_fs_24 cs_semibold cs_white_color cs_mb_53 cs_mb_lg_30 wow fadeInDown">Get the latest information about properties from Dreamwell</h2>
-                        <form action="#" class="cs_newsletter_form cs_radius_10 wow fadeInUp">
-                            <input type="email" name="email" autocomplete="given-name" class="cs_newsletter_input cs_radius_7" placeholder="Enter your email here">
-                            <button type="submit" aria-label="Subscribe Button" class="cs_btn cs_style_1 cs_accent_bg cs_white_color cs_medium cs_radius_7">
-                                <span class="cs_btn_text">Subscribe</span>
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="cs_footer_bottom">
-            <div class="container">
-                <div class="cs_footer_bottom_in">
-                    <div class="cs_socials_wrapper">
-                        <h3 class="cs_fs_16 cs_white_color cs_normal mb-0">Follow Us</h3>
-                        <div class="cs_social_btns cs_style_1">
-                            <a href="#" aria-label="Social button" class="cs_center cs_radius_50 cs_gray_bg">
-                                <i class="fa-brands fa-facebook-f"></i>
-                            </a>
-                            <a href="#" aria-label="Social button" class="cs_center cs_radius_50 cs_gray_bg">
-                                <i class="fa-brands fa-youtube"></i>
-                            </a>
-                            <a href="#" aria-label="Social button" class="cs_center cs_radius_50 cs_gray_bg">
-                                <i class="fa-brands fa-linkedin-in"></i>
-                            </a>
-                            <a href="#" aria-label="Social button" class="cs_center cs_radius_50 cs_gray_bg">
-                                <i class="fa-brands fa-twitter"></i>
-                            </a>
-                            <a href="#" aria-label="Social button" class="cs_center cs_radius_50 cs_gray_bg">
-                                <i class="fa-brands fa-instagram"></i>
-                            </a>
-                        </div>
-                    </div>
-                    <ul class="cs_footer_widget_menu">
-                        <li><a href="#" aria-label="Privacy & Policy">Privacy Policy</a></li>
-                        <li><a href="#" aria-label="Terms & Condition">Term & Conditions</a></li>
-                        <li><a href="#" aria-label="Cookies & Policy">Cookies Policy</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </footer> <!-- End Footer Section -->
-
-
-    <!-- Start Scroll To Top Button -->
-    <button type="button" class="cs_scrolltop_btn cs_center cs_radius_50 cs_white_bg cs_accent_color">
-        <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 15 15">
-            <path fill="currentColor" fill-rule="evenodd" d="M7.146 2.146a.5.5 0 0 1 .708 0l4 4a.5.5 0 0 1-.708.708L8 3.707V12.5a.5.5 0 0 1-1 0V3.707L3.854 6.854a.5.5 0 1 1-.708-.708z" clip-rule="evenodd" />
-        </svg>
-    </button>
-    <!-- End Scroll To Top Button -->
-    <!-- Script -->
-    <script data-cfasync="false" src="cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
-    <script src="assets/js/jquery.min.js"></script>
-    <script src="assets/js/jquery.slick.min.js"></script>
-    <script src="assets/js/light-gallery.min.js"></script>
-    <script src="assets/js/jquery-ui.min.js"></script>
-    <script src="assets/js/odometer.js"></script>
-    <script src="assets/js/wow.min.js"></script>
-    <script src="assets/js/main.js"></script>
-    <script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"0ab4571d0d2d49d98ed8ed40340daaf0","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
-</body>
-
-<!-- Mirrored from dreamwell-laravel.embexel.com/ by HTTrack Website Copier/3.x [XR&CO'2014], Sun, 15 Feb 2026 18:27:09 GMT -->
-
-</html>
+<?= $this->endSection() ?>
