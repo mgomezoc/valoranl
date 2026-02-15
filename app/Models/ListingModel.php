@@ -60,32 +60,39 @@ class ListingModel extends Model
 
     protected $validationRules = [
         'source_id' => 'permit_empty|integer',
-        'title'     => 'permit_empty|string|max_length[255]',
-        'status'    => 'permit_empty|in_list[active,inactive,sold,unknown]',
-        'price_type'=> 'permit_empty|in_list[sale,rent,unknown]',
-        'currency'  => 'permit_empty|string|max_length[10]',
+        'title' => 'permit_empty|string|max_length[255]',
+        'status' => 'permit_empty|in_list[active,inactive,sold,unknown]',
+        'price_type' => 'permit_empty|in_list[sale,rent,unknown]',
+        'currency' => 'permit_empty|string|max_length[10]',
     ];
 
-    public function getLatestListings(int $limit = 12): array
+    /**
+     * @return array<int, string>
+     */
+    public function getDistinctPropertyTypes(): array
     {
-        return $this->select('listings.*, sources.source_name')
-            ->join('sources', 'sources.id = listings.source_id', 'left')
-            ->orderBy('listings.updated_at', 'DESC')
-            ->findAll($limit);
+        $rows = $this->select('property_type')
+            ->where('property_type IS NOT NULL', null, false)
+            ->where('property_type !=', '')
+            ->groupBy('property_type')
+            ->orderBy('property_type', 'ASC')
+            ->findAll();
+
+        return array_values(array_map(static fn(array $row): string => (string) $row['property_type'], $rows));
     }
 
-    public function getListingsForMarketStats(int $limit = 400): array
+    /**
+     * @return array<int, string>
+     */
+    public function getDistinctMunicipalities(): array
     {
-        return $this->select('listings.id, listings.price_amount, listings.area_construction_m2, listings.status, listings.municipality')
-            ->orderBy('listings.updated_at', 'DESC')
-            ->findAll($limit);
-    }
+        $rows = $this->select('municipality')
+            ->where('municipality IS NOT NULL', null, false)
+            ->where('municipality !=', '')
+            ->groupBy('municipality')
+            ->orderBy('municipality', 'ASC')
+            ->findAll();
 
-    public function findWithSource(int $id): ?array
-    {
-        return $this->select('listings.*, sources.source_name, sources.base_url')
-            ->join('sources', 'sources.id = listings.source_id', 'left')
-            ->where('listings.id', $id)
-            ->first();
+        return array_values(array_map(static fn(array $row): string => (string) $row['municipality'], $rows));
     }
 }
