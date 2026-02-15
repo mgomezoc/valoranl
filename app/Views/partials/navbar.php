@@ -6,8 +6,8 @@
                         <a
                             class="cs_site_branding"
                             href="<?= url_to('home.index') ?>"
-                            aria-label="Click to visit home page">
-                            <img src="<?= base_url('assets/img/logo.svg') ?>" alt="Logo de ValoraNL">
+                            aria-label="Ir a inicio">
+                            <img src="<?= base_url('assets/img/logo-valoranl.svg') ?>" alt="Logo de ValoraNL">
                         </a>
                         <nav class="cs_nav cs_heading_color">
                             <ul class="cs_nav_list">
@@ -41,13 +41,13 @@
                         </nav>
                     </div>
                     <div class="cs_main_header_right">
-                        <a href="sign-up.html" aria-label="Sign In Button" class="cs_btn cs_style_1 cs_accent_bg cs_fs_15 cs_medium cs_white_color cs_radius_7">
+                        <a href="sign-up.html" aria-label="Botón iniciar sesión" class="cs_btn cs_style_1 cs_accent_bg cs_fs_15 cs_medium cs_white_color cs_radius_7">
                             <span class="cs_btn_icon"><i class="fa-solid fa-circle-user"></i></span>
-                            <span class="cs_btn_text">Sign In</span>
+                            <span class="cs_btn_text">Iniciar sesión</span>
                         </a>
-                        <a href="profile.html" aria-label="Add Property Button" class="cs_btn cs_style_1 cs_type_1 cs_accent_color cs_fs_15 cs_medium cs_radius_7">
+                        <a href="profile.html" aria-label="Botón agregar propiedad" class="cs_btn cs_style_1 cs_type_1 cs_accent_color cs_fs_15 cs_medium cs_radius_7">
                             <span class="cs_btn_icon"><i class="fa-solid fa-circle-plus"></i></span>
-                            <span class="cs_btn_text">Add Property</span>
+                            <span class="cs_btn_text">Agregar propiedad</span>
                         </a>
                     </div>
                 </div>

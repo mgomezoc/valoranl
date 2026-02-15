@@ -1,0 +1,68 @@
+:root {
+    --vn-deep-teal: #002b36;
+    --vn-gold: #e6d7b8;
+    --vn-white: #ffffff;
+    --vn-cyan: #2c7a8b;
+    --vn-slate: #4a5568;
+    --vn-dark: #1f373f;
+}
+
+body {
+    font-family: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    color: var(--vn-white);
+    background:
+        radial-gradient(circle at 15% 10%, rgba(44, 122, 139, 0.28), transparent 45%),
+        radial-gradient(circle at 85% 15%, rgba(74, 85, 104, 0.35), transparent 40%),
+        linear-gradient(135deg, var(--vn-deep-teal) 0%, #012e3a 48%, var(--vn-dark) 100%);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--vn-gold);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.cs_site_header.cs_style_1 {
+    background: rgba(0, 43, 54, 0.88);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(230, 215, 184, 0.2);
+}
+
+.cs_site_branding img {
+    max-height: 48px;
+}
+
+.cs_nav .cs_nav_list > li > a,
+.cs_btn.cs_style_1 {
+    font-weight: 600;
+}
+
+.cs_accent_bg,
+.cs_btn.cs_style_1.cs_accent_bg {
+    background-color: var(--vn-gold);
+    color: var(--vn-deep-teal);
+}
+
+.cs_btn.cs_style_1.cs_type_1 {
+    border-color: var(--vn-gold);
+    color: var(--vn-gold);
+}
+
+.cs_btn.cs_style_1.cs_type_1:hover {
+    background-color: var(--vn-gold);
+    color: var(--vn-deep-teal);
+}
+
+.cs_footer.cs_style_1 {
+    background: linear-gradient(180deg, rgba(0, 43, 54, 0.92) 0%, rgba(31, 55, 63, 0.96) 100%);
+    border-top: 1px solid rgba(230, 215, 184, 0.2);
+}
+
+.cs_social_btns.cs_style_1 a {
+    border: 1px solid rgba(230, 215, 184, 0.45);
+}

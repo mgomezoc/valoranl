@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="<?= base_url('assets/css/odometer.css') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/animate.css') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('assets/css/valoranl-theme.css') ?>">
     <?= $this->renderSection('styles') ?>
 </head>
 <body>
