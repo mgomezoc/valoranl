@@ -3,11 +3,11 @@
 <?= $this->section('title') ?><?= esc($pageTitle ?? 'ValoraNL') ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
-<section class="cs_gray_bg cs_p96_66">
+<section class="cs_gray_bg cs_p96_66 valuation-page">
     <div class="container">
         <div class="row cs_gap_y_24">
             <div class="col-lg-8">
-                <div class="cs_card cs_style_1 p-4" id="valuation-form">
+                <div class="cs_card cs_style_1 p-4 valuation-card" id="valuation-form">
                     <h1 class="cs_fs_42 mb-2">Calculadora de valuación inmobiliaria</h1>
                     <p class="mb-4">Completa los datos de la propiedad y recibe un valor estimado por comparables reales en Nuevo León.</p>
 
@@ -76,7 +76,7 @@
             </div>
 
             <div class="col-lg-4">
-                <div class="cs_card cs_style_1 p-4 h-100">
+                <div class="cs_card cs_style_1 p-4 h-100 valuation-card valuation-help-card">
                     <h2 class="cs_fs_29 mb-3">¿Qué recibirás?</h2>
                     <ul class="mb-4">
                         <li>Valor estimado en MXN.</li>
@@ -91,9 +91,9 @@
     </div>
 </section>
 
-<section class="cs_p96_66" id="valuation-results-section" style="display:none;">
+<section class="cs_p96_66 valuation-page" id="valuation-results-section" style="display:none;">
     <div class="container">
-        <div class="cs_card cs_style_1 p-4">
+        <div class="cs_card cs_style_1 p-4 valuation-card valuation-results-card">
             <h2 class="cs_fs_38 mb-3">Resultado de valuación</h2>
             <p id="valuation-result-message" class="mb-4"></p>
 
