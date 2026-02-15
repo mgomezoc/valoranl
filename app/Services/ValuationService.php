@@ -8,6 +8,7 @@ class ValuationService
 {
     private const MIN_COMPARABLES = 5;
     private const TARGET_COMPARABLES = 10;
+    private const FALLBACK_BASE_PPU = 18000.0;
 
     public function __construct(private readonly ListingModel $listingModel = new ListingModel())
     {
@@ -23,37 +24,28 @@ class ValuationService
         $areaMin = $subject['area_construction_m2'] * 0.7;
         $areaMax = $subject['area_construction_m2'] * 1.3;
 
-        $strictComparables = $this->getComparables(
-            subject: $subject,
-            areaMin: $areaMin,
-            areaMax: $areaMax,
-            useColony: true,
-        );
-
         $locationScope = 'colonia';
-        $rawComparables = $strictComparables;
+        $rawComparables = $this->getComparables($subject, $areaMin, $areaMax, useColony: true);
 
         if (count($rawComparables) < self::TARGET_COMPARABLES) {
-            $rawComparables = $this->getComparables(
-                subject: $subject,
-                areaMin: $areaMin,
-                areaMax: $areaMax,
-                useColony: false,
-            );
+            $rawComparables = $this->getComparables($subject, $areaMin, $areaMax, useColony: false);
             $locationScope = 'municipio';
+        }
+
+        if (count($rawComparables) < self::MIN_COMPARABLES) {
+            $rawComparables = $this->getFallbackComparablesByMunicipality($subject);
+            $locationScope = 'municipio_ampliado';
+        }
+
+        if (count($rawComparables) < self::MIN_COMPARABLES) {
+            $rawComparables = $this->getFallbackComparablesStatewide($subject);
+            $locationScope = 'estado';
         }
 
         $prepared = $this->prepareComparables($rawComparables, $subject, $locationScope);
 
-        if (count($prepared) < self::MIN_COMPARABLES) {
-            return [
-                'ok' => false,
-                'message' => 'No hay comparables suficientes para estimar con fiabilidad. Intenta ajustar municipio, colonia o tipo de propiedad.',
-                'subject' => $subject,
-                'confidence_score' => 20,
-                'confidence_reasons' => ['Muestra insuficiente de comparables útiles.'],
-                'comparables' => $prepared,
-            ];
+        if ($prepared === []) {
+            return $this->buildSyntheticEstimate($subject);
         }
 
         $ppus = array_column($prepared, 'ppu_m2');
@@ -73,7 +65,9 @@ class ValuationService
 
         return [
             'ok' => true,
-            'message' => 'Valuación estimada calculada correctamente.',
+            'message' => $locationScope === 'estado'
+                ? 'Valuación estimada con referencia estatal por baja disponibilidad local de comparables.'
+                : 'Valuación estimada calculada correctamente.',
             'subject' => $subject,
             'estimated_value' => round($estimatedValue, 2),
             'estimated_low' => round($estimatedLow, 2),
@@ -135,6 +129,47 @@ class ValuationService
     }
 
     /**
+     * @param array<string, mixed> $subject
+     * @return array<int, array<string, mixed>>
+     */
+    private function getFallbackComparablesByMunicipality(array $subject): array
+    {
+        $builder = $this->listingModel->builder();
+
+        return $builder->select('id, url, title, property_type, municipality, colony, area_construction_m2, bedrooms, bathrooms, parking, lat, lng, price_amount, currency')
+            ->where('status', 'active')
+            ->where('price_type', 'sale')
+            ->where('municipality', $subject['municipality'])
+            ->where('price_amount IS NOT NULL', null, false)
+            ->where('area_construction_m2 IS NOT NULL', null, false)
+            ->where('area_construction_m2 >', 0)
+            ->orderBy('updated_at', 'DESC')
+            ->limit(350)
+            ->get()->getResultArray();
+    }
+
+    /**
+     * @param array<string, mixed> $subject
+     * @return array<int, array<string, mixed>>
+     */
+    private function getFallbackComparablesStatewide(array $subject): array
+    {
+        $builder = $this->listingModel->builder();
+
+        return $builder->select('id, url, title, property_type, municipality, colony, area_construction_m2, bedrooms, bathrooms, parking, lat, lng, price_amount, currency')
+            ->where('status', 'active')
+            ->where('price_type', 'sale')
+            ->where('property_type', $subject['property_type'])
+            ->where('state', 'Nuevo León')
+            ->where('price_amount IS NOT NULL', null, false)
+            ->where('area_construction_m2 IS NOT NULL', null, false)
+            ->where('area_construction_m2 >', 0)
+            ->orderBy('updated_at', 'DESC')
+            ->limit(500)
+            ->get()->getResultArray();
+    }
+
+    /**
      * @param array<int, array<string, mixed>> $rows
      * @param array<string, mixed> $subject
      * @return array<int, array<string, mixed>>
@@ -159,8 +194,6 @@ class ValuationService
                 isset($row['lng']) ? (float) $row['lng'] : null,
             );
 
-            $similarity = $this->computeSimilarity($subject, $row, $distanceKm);
-
             $comparables[] = [
                 'id' => (int) $row['id'],
                 'title' => (string) ($row['title'] ?? 'Comparable'),
@@ -175,14 +208,12 @@ class ValuationService
                 'parking' => $row['parking'] !== null ? (int) $row['parking'] : null,
                 'ppu_m2' => $ppu,
                 'distance_km' => $distanceKm,
-                'similarity_score' => $similarity,
+                'similarity_score' => $this->computeSimilarity($subject, $row, $distanceKm),
                 'location_scope' => $locationScope,
             ];
         }
 
-        $cleaned = $this->removeOutliersByIqr($comparables);
-
-        return array_values($cleaned);
+        return array_values($this->removeOutliersByIqr($comparables));
     }
 
     /**
@@ -200,9 +231,8 @@ class ValuationService
         $parkingNorm = $this->featureDiffNorm($subject['parking'], $row['parking'] ?? null, 4);
 
         $distanceNorm = $distanceKm !== null ? min(1.0, $distanceKm / 20.0) : null;
-        $hasDistance = $distanceNorm !== null;
 
-        $weights = $hasDistance
+        $weights = $distanceNorm !== null
             ? ['distance' => 0.40, 'area' => 0.25, 'rooms' => 0.20, 'bathParking' => 0.15]
             : ['distance' => 0.00, 'area' => 0.50, 'rooms' => 0.30, 'bathParking' => 0.20];
 
@@ -235,9 +265,8 @@ class ValuationService
 
         $a = sin($dLat / 2) ** 2
             + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
-        return $earthRadiusKm * $c;
+        return $earthRadiusKm * (2 * atan2(sqrt($a), sqrt(1 - $a)));
     }
 
     /**
@@ -368,20 +397,56 @@ class ValuationService
         $dispersionRatio = $mean > 0 ? $std / $mean : 1;
         $baseDispersion = max(0.2, 1 - min(1.0, $dispersionRatio));
 
-        $baseLocation = $locationScope === 'colonia' ? 1.0 : 0.75;
+        $baseLocation = match ($locationScope) {
+            'colonia' => 1.0,
+            'municipio' => 0.85,
+            'municipio_ampliado' => 0.75,
+            default => 0.60,
+        };
 
         $score = (int) round(100 * $baseN * $baseDispersion * $baseLocation);
-        $score = max(10, min(98, $score));
+        $score = max(15, min(98, $score));
 
         $reasons = [
             sprintf('%d comparables útiles.', $n),
             sprintf('Dispersión %s (σ/μ %.2f).', $dispersionRatio < 0.25 ? 'baja' : ($dispersionRatio < 0.45 ? 'media' : 'alta'), $dispersionRatio),
-            $locationScope === 'colonia'
-                ? 'Comparables de la misma colonia.'
-                : 'Comparables del mismo municipio (colonia ampliada por baja muestra).',
+            match ($locationScope) {
+                'colonia' => 'Comparables de la misma colonia.',
+                'municipio' => 'Comparables del mismo municipio.',
+                'municipio_ampliado' => 'Comparables ampliados dentro del municipio por baja muestra local.',
+                default => 'Comparables de referencia estatal por baja disponibilidad local.',
+            },
         ];
 
         return ['score' => $score, 'reasons' => $reasons];
+    }
+
+    /**
+     * @param array<string, mixed> $subject
+     * @return array<string, mixed>
+     */
+    private function buildSyntheticEstimate(array $subject): array
+    {
+        $estimatedValue = self::FALLBACK_BASE_PPU * $subject['area_construction_m2'];
+
+        return [
+            'ok' => true,
+            'message' => 'Valuación estimada con referencia base por falta de comparables publicados en la zona.',
+            'subject' => $subject,
+            'estimated_value' => round($estimatedValue, 2),
+            'estimated_low' => round($estimatedValue * 0.85, 2),
+            'estimated_high' => round($estimatedValue * 1.15, 2),
+            'ppu_base' => self::FALLBACK_BASE_PPU,
+            'comparables_count' => 0,
+            'comparables' => [],
+            'confidence_score' => 18,
+            'confidence_reasons' => [
+                'No se localizaron comparables activos con datos completos.',
+                'Se aplicó una referencia base de mercado para orientación rápida.',
+                'Este resultado es informativo y no sustituye un avalúo profesional.',
+            ],
+            'location_scope' => 'sintetico',
+        ];
     }
 
     /**
