@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Libraries\ValuationMath;
 use App\Models\ListingModel;
 
 class ValuationService
@@ -10,9 +11,10 @@ class ValuationService
     private const TARGET_COMPARABLES = 10;
     private const FALLBACK_BASE_PPU = 18000.0;
 
-    public function __construct(private readonly ListingModel $listingModel = new ListingModel())
-    {
-    }
+    public function __construct(
+        private readonly ListingModel $listingModel = new ListingModel(),
+        private readonly ValuationMath $valuationMath = new ValuationMath(),
+    ) {}
 
     /**
      * @param array<string, mixed> $input
@@ -21,6 +23,14 @@ class ValuationService
     public function estimate(array $input): array
     {
         $subject = $this->normalizeInput($input);
+        $rossHeideckeFactor = $this->valuationMath->rossHeideckeFactor(
+            ageYears: $subject['age_years'] ?? 0,
+            conservationLevel: $subject['conservation_level'] ?? 9,
+        );
+        $negotiationFactor = $this->valuationMath->negotiationFactor();
+        $equipmentFactor = $subject['equipment_factor'] ?? 1.0;
+        $adjustmentFactor = round($rossHeideckeFactor * $negotiationFactor * $equipmentFactor, 4);
+
         $areaMin = $subject['area_construction_m2'] * 0.7;
         $areaMax = $subject['area_construction_m2'] * 1.3;
 
@@ -57,11 +67,11 @@ class ValuationService
         $ppuBase = $this->weightedMedian($ppus, $scores);
         $ppuAdjusted = $this->applySizeAdjustment($ppuBase, $subject['area_construction_m2'], $prepared);
 
-        $estimatedValue = $ppuAdjusted * $subject['area_construction_m2'];
+        $estimatedValue = ($ppuAdjusted * $subject['area_construction_m2']) * $adjustmentFactor;
         $ppuP25 = $this->percentile($ppus, 0.25);
         $ppuP75 = $this->percentile($ppus, 0.75);
-        $estimatedLow = $ppuP25 * $subject['area_construction_m2'];
-        $estimatedHigh = $ppuP75 * $subject['area_construction_m2'];
+        $estimatedLow = ($ppuP25 * $subject['area_construction_m2']) * $adjustmentFactor;
+        $estimatedHigh = ($ppuP75 * $subject['area_construction_m2']) * $adjustmentFactor;
 
         $confidence = $this->buildConfidence($prepared, $locationScope);
 
@@ -105,10 +115,16 @@ class ValuationService
                     'p25' => round($ppuP25, 2),
                     'p75' => round($ppuP75, 2),
                 ],
+                'valuation_factors' => [
+                    'ross_heidecke' => $rossHeideckeFactor,
+                    'negotiation' => $negotiationFactor,
+                    'equipment' => $equipmentFactor,
+                    'combined_adjustment_factor' => $adjustmentFactor,
+                ],
                 'formula' => [
-                    'estimated_value' => 'adjusted_ppu * subject_area_m2',
-                    'estimated_low' => 'p25_ppu * subject_area_m2',
-                    'estimated_high' => 'p75_ppu * subject_area_m2',
+                    'estimated_value' => '(adjusted_ppu * subject_area_m2) * adjustment_factor',
+                    'estimated_low' => '(p25_ppu * subject_area_m2) * adjustment_factor',
+                    'estimated_high' => '(p75_ppu * subject_area_m2) * adjustment_factor',
                 ],
                 'human_steps' => [
                     'Buscamos propiedades parecidas en tu zona y, si no alcanza, ampliamos el alcance.',
@@ -137,6 +153,13 @@ class ValuationService
             'parking' => isset($input['parking']) && $input['parking'] !== '' ? max(0, (int) $input['parking']) : null,
             'lat' => isset($input['lat']) && $input['lat'] !== '' ? (float) $input['lat'] : null,
             'lng' => isset($input['lng']) && $input['lng'] !== '' ? (float) $input['lng'] : null,
+            'age_years' => isset($input['age_years']) && $input['age_years'] !== '' ? max(0, (int) $input['age_years']) : 0,
+            'conservation_level' => isset($input['conservation_level']) && $input['conservation_level'] !== ''
+                ? max(1, min(9, (int) $input['conservation_level']))
+                : $this->valuationMath->inferConservationLevel(isset($input['age_years']) ? (int) $input['age_years'] : 0),
+            'equipment_factor' => isset($input['equipment_factor']) && $input['equipment_factor'] !== ''
+                ? max(0.7, min(1.3, (float) $input['equipment_factor']))
+                : 1.0,
         ];
     }
 
@@ -466,7 +489,15 @@ class ValuationService
      */
     private function buildSyntheticEstimate(array $subject): array
     {
-        $estimatedValue = self::FALLBACK_BASE_PPU * $subject['area_construction_m2'];
+        $rossHeideckeFactor = $this->valuationMath->rossHeideckeFactor(
+            ageYears: $subject['age_years'] ?? 0,
+            conservationLevel: $subject['conservation_level'] ?? 9,
+        );
+        $negotiationFactor = $this->valuationMath->negotiationFactor();
+        $equipmentFactor = $subject['equipment_factor'] ?? 1.0;
+        $adjustmentFactor = round($rossHeideckeFactor * $negotiationFactor * $equipmentFactor, 4);
+
+        $estimatedValue = (self::FALLBACK_BASE_PPU * $subject['area_construction_m2']) * $adjustmentFactor;
 
         return [
             'ok' => true,
@@ -496,10 +527,16 @@ class ValuationService
                     'p25' => self::FALLBACK_BASE_PPU * 0.85,
                     'p75' => self::FALLBACK_BASE_PPU * 1.15,
                 ],
+                'valuation_factors' => [
+                    'ross_heidecke' => $rossHeideckeFactor,
+                    'negotiation' => $negotiationFactor,
+                    'equipment' => $equipmentFactor,
+                    'combined_adjustment_factor' => $adjustmentFactor,
+                ],
                 'formula' => [
-                    'estimated_value' => 'fallback_ppu * subject_area_m2',
-                    'estimated_low' => '(fallback_ppu * 0.85) * subject_area_m2',
-                    'estimated_high' => '(fallback_ppu * 1.15) * subject_area_m2',
+                    'estimated_value' => '(fallback_ppu * subject_area_m2) * adjustment_factor',
+                    'estimated_low' => '((fallback_ppu * 0.85) * subject_area_m2) * adjustment_factor',
+                    'estimated_high' => '((fallback_ppu * 1.15) * subject_area_m2) * adjustment_factor',
                 ],
                 'human_steps' => [
                     'No encontramos suficientes propiedades parecidas en ese momento.',
