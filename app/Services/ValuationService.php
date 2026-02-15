@@ -110,6 +110,12 @@ class ValuationService
                     'estimated_low' => 'p25_ppu * subject_area_m2',
                     'estimated_high' => 'p75_ppu * subject_area_m2',
                 ],
+                'human_steps' => [
+                    'Buscamos propiedades parecidas en tu zona y, si no alcanza, ampliamos el alcance.',
+                    'Tomamos el precio por m² más representativo del conjunto de comparables.',
+                    'Ajustamos ese valor según el tamaño de tu casa para no sobreestimar.',
+                    'Calculamos un rango bajo y alto para darte una referencia realista.',
+                ],
             ],
         ];
     }
@@ -494,6 +500,11 @@ class ValuationService
                     'estimated_value' => 'fallback_ppu * subject_area_m2',
                     'estimated_low' => '(fallback_ppu * 0.85) * subject_area_m2',
                     'estimated_high' => '(fallback_ppu * 1.15) * subject_area_m2',
+                ],
+                'human_steps' => [
+                    'No encontramos suficientes propiedades parecidas en ese momento.',
+                    'Usamos una referencia general de mercado para darte una orientación rápida.',
+                    'El resultado es informativo y puede variar frente a un avalúo profesional.',
                 ],
             ],
         ];

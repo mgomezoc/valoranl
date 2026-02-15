@@ -132,7 +132,7 @@
 
 
             <div class="mb-4">
-                <h3 class="cs_fs_29 mb-3">¿Cómo se calculó este resultado?</h3>
+                <h3 class="cs_fs_29 mb-3">¿Cómo obtuvimos este resultado?</h3>
                 <div class="table-responsive">
                     <table class="table table-striped align-middle" id="calculation-breakdown-table">
                         <tbody>
@@ -141,27 +141,27 @@
                             <td id="calc-method">—</td>
                         </tr>
                         <tr>
-                            <th>Alcance usado</th>
+                            <th>Zona que se tomó en cuenta</th>
                             <td id="calc-scope">—</td>
                         </tr>
                         <tr>
-                            <th>Comparables (raw / útiles)</th>
+                            <th>Propiedades encontradas / usadas</th>
                             <td id="calc-counts">—</td>
                         </tr>
                         <tr>
-                            <th>PPU mediana ponderada</th>
+                            <th>Precio por m² de referencia</th>
                             <td id="calc-ppu-weighted">—</td>
                         </tr>
                         <tr>
-                            <th>PPU ajustado</th>
+                            <th>Precio por m² ajustado</th>
                             <td id="calc-ppu-adjusted">—</td>
                         </tr>
                         <tr>
-                            <th>P25 / P75 PPU</th>
+                            <th>Rango por m² (mínimo-máximo)</th>
                             <td id="calc-ppu-range">—</td>
                         </tr>
                         <tr>
-                            <th>Fórmulas</th>
+                            <th>Explicación sencilla</th>
                             <td>
                                 <ul class="mb-0" id="calc-formulas"></ul>
                             </td>

@@ -161,19 +161,34 @@
         const breakdown = response.calc_breakdown || {};
         const ppuStats = breakdown.ppu_stats || {};
         const formulas = breakdown.formula || {};
+        const humanSteps = Array.isArray(breakdown.human_steps) ? breakdown.human_steps : [];
 
-        $calcMethod.text(breakdown.method || 'N/D');
-        $calcScope.text(breakdown.scope_used || response.location_scope || 'N/D');
+        const methodLabel = breakdown.method === 'synthetic_fallback_v1'
+            ? 'Estimación de apoyo (sin suficientes comparables)'
+            : 'Comparación con propiedades similares';
+
+        const scopeLabelMap = {
+            colonia: 'Misma colonia',
+            municipio: 'Mismo municipio',
+            municipio_ampliado: 'Municipio ampliado',
+            estado: 'Referencia estatal (Nuevo León)',
+            sintetico: 'Referencia general de mercado',
+        };
+
+        $calcMethod.text(methodLabel);
+        $calcScope.text(scopeLabelMap[breakdown.scope_used] || breakdown.scope_used || response.location_scope || 'N/D');
         $calcCounts.text(`${breakdown.comparables_raw ?? 'N/D'} / ${breakdown.comparables_useful ?? 'N/D'}`);
         $calcPpuWeighted.text(formatCurrency(ppuStats.weighted_median));
         $calcPpuAdjusted.text(formatCurrency(ppuStats.adjusted_ppu));
         $calcPpuRange.text(`${formatCurrency(ppuStats.p25)} - ${formatCurrency(ppuStats.p75)}`);
 
-        const formulaItems = [
-            `Valor estimado: ${formulas.estimated_value || 'N/D'}`,
-            `Rango bajo: ${formulas.estimated_low || 'N/D'}`,
-            `Rango alto: ${formulas.estimated_high || 'N/D'}`,
-        ].map((item) => `<li>${item}</li>`).join('');
+        const formulaItems = (humanSteps.length > 0
+            ? humanSteps
+            : [
+                `Valor estimado: ${formulas.estimated_value || 'N/D'}`,
+                `Rango bajo: ${formulas.estimated_low || 'N/D'}`,
+                `Rango alto: ${formulas.estimated_high || 'N/D'}`,
+            ]).map((item) => `<li>${item}</li>`).join('');
 
         $calcFormulas.html(formulaItems);
     };
