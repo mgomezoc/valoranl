@@ -2,31 +2,29 @@
 
 namespace App\Controllers;
 
-use App\Models\ListingModel;
 use App\Services\ValuationService;
 
 class Home extends BaseController
 {
-    public function __construct(
-        private readonly ValuationService $valuationService = new ValuationService(),
-        private readonly ListingModel $listingModel = new ListingModel(),
-    ) {
+    public function __construct(private readonly ValuationService $valuationService = new ValuationService())
+    {
     }
 
     public function index(): string
     {
         return view('home', [
-            'pageTitle' => 'ValoraNL | Calcula el valor estimado de tu casa en Nuevo León',
-            'metaDescription' => 'Calcula una valuación estimada por comparables para casas y departamentos en Nuevo León. Recibe rango, confianza y propiedades similares.',
-            'propertyTypes' => $this->listingModel->getDistinctPropertyTypes(),
-            'municipalities' => $this->listingModel->getDistinctMunicipalities(),
+            'pageTitle' => 'ValoraNL | Calculadora de valuación inmobiliaria en Nuevo León',
+            'metaDescription' => 'Calcula el valor estimado de una casa en Nuevo León con comparables, rango de precio y nivel de confianza.',
         ]);
     }
 
     public function estimate()
     {
+        $postData = $this->request->getPost();
+        $postData['property_type'] = 'casa';
+
         $rules = [
-            'property_type' => 'required|string|max_length[80]',
+            'property_type' => 'required|in_list[casa]',
             'municipality' => 'required|string|max_length[120]',
             'colony' => 'required|string|max_length[160]',
             'area_construction_m2' => 'required|decimal|greater_than[0]',
@@ -39,7 +37,7 @@ class Home extends BaseController
             'lng' => 'permit_empty|decimal',
         ];
 
-        if (! $this->validateData($this->request->getPost(), $rules)) {
+        if (! $this->validateData($postData, $rules)) {
             return $this->response->setStatusCode(422)->setJSON([
                 'ok' => false,
                 'message' => 'Revisa los campos del formulario.',
@@ -48,7 +46,7 @@ class Home extends BaseController
         }
 
         try {
-            $result = $this->valuationService->estimate($this->request->getPost());
+            $result = $this->valuationService->estimate($postData);
 
             return $this->response->setJSON($result);
         } catch (\Throwable $exception) {

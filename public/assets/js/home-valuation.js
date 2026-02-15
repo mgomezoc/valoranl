@@ -2,9 +2,17 @@
     'use strict';
 
     const config = window.ValoraNLEstimateConfig || {};
-    const $form = $('#valuation-form');
+    const chartisBaseUrl = config.chartisBaseUrl || 'https://chartismx.com/api';
+    const nlStateId = config.nlStateId || '19';
+
+    const $form = $('#valuation-form-element');
     const $submit = $('#valuation-submit');
     const $errors = $('#valuation-form-errors');
+
+    const $municipality = $('#municipality');
+    const $municipalityOptions = $('#municipality-options');
+    const $colony = $('#colony');
+    const $colonyOptions = $('#colony-options');
 
     const $resultsSection = $('#valuation-results-section');
     const $message = $('#valuation-result-message');
@@ -44,6 +52,49 @@
 
     const clearErrors = () => {
         $errors.addClass('d-none').empty();
+    };
+
+    const normalizeName = (item) => {
+        if (typeof item === 'string') {
+            return item;
+        }
+
+        return item.nombre || item.name || item.municipio || item.colonia || item.NOM_MUN || item.NOM_COL || item.label || '';
+    };
+
+    const renderDatalist = ($datalist, names) => {
+        const uniqueNames = [...new Set(names.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+        const options = uniqueNames.map((name) => `<option value="${$('<div>').text(name).html()}"></option>`).join('');
+        $datalist.html(options);
+    };
+
+    const loadMunicipalities = () => {
+        return $.getJSON(`${chartisBaseUrl}/getMunicipios`, { entidad: nlStateId })
+            .done((response) => {
+                const items = Array.isArray(response) ? response : (response.data || []);
+                renderDatalist($municipalityOptions, items.map(normalizeName));
+            })
+            .fail(() => {
+                console.warn('No fue posible cargar municipios desde ChartisMX.');
+            });
+    };
+
+    const loadColonies = (municipalityName) => {
+        $colonyOptions.empty();
+
+        if (!municipalityName) {
+            return;
+        }
+
+        $.getJSON(`${chartisBaseUrl}/getColonias`, {
+            entidad: nlStateId,
+            municipio: municipalityName,
+        }).done((response) => {
+            const items = Array.isArray(response) ? response : (response.data || []);
+            renderDatalist($colonyOptions, items.map(normalizeName));
+        }).fail(() => {
+            console.warn('No fue posible cargar colonias desde ChartisMX.');
+        });
     };
 
     const renderComparables = (comparables) => {
@@ -92,13 +143,60 @@
         $('html, body').animate({ scrollTop: $resultsSection.offset().top - 80 }, 400);
     };
 
+    const setupValidation = () => {
+        if (!$.fn.validate) {
+            return;
+        }
+
+        $form.validate({
+            errorClass: 'is-invalid',
+            validClass: 'is-valid',
+            errorElement: 'div',
+            errorPlacement(error, element) {
+                error.addClass('invalid-feedback');
+                error.insertAfter(element);
+            },
+            highlight(element) {
+                $(element).addClass('is-invalid').removeClass('is-valid');
+            },
+            unhighlight(element) {
+                $(element).removeClass('is-invalid').addClass('is-valid');
+            },
+            rules: {
+                municipality: { required: true, maxlength: 120 },
+                colony: { required: true, maxlength: 160 },
+                area_construction_m2: { required: true, number: true, min: 1 },
+                area_land_m2: { number: true, min: 0 },
+                bedrooms: { digits: true, min: 0 },
+                bathrooms: { number: true, min: 0 },
+                half_bathrooms: { digits: true, min: 0 },
+                parking: { digits: true, min: 0 },
+                lat: { number: true },
+                lng: { number: true },
+            },
+            messages: {
+                municipality: { required: 'Selecciona o escribe un municipio.' },
+                colony: { required: 'Selecciona o escribe una colonia.' },
+                area_construction_m2: {
+                    required: 'Ingresa los m² de construcción.',
+                    min: 'Debe ser mayor a 0.',
+                },
+            },
+        });
+    };
+
+    setupValidation();
+    loadMunicipalities();
+
+    $municipality.on('change blur', function () {
+        loadColonies($(this).val().trim());
+    });
+
     $form.on('submit', function (event) {
         event.preventDefault();
         clearErrors();
 
-        const areaValue = Number($('#area_construction_m2').val());
-        if (!areaValue || areaValue <= 0) {
-            showErrors({ area_construction_m2: 'El campo m² construcción debe ser mayor a 0.' });
+        if ($.fn.validate && !$form.valid()) {
             return;
         }
 

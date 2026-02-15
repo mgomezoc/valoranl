@@ -3,49 +3,33 @@
 <?= $this->section('title') ?><?= esc($pageTitle ?? 'ValoraNL') ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
-<section class="cs_hero cs_style_1">
-    <div class="container">
-        <div class="cs_hero_content_wrapper cs_center_column cs_bg_filed cs_radius_25" data-src="<?= base_url('assets/img/hero_img_2.jpg') ?>">
-            <div class="cs_hero_text text-center">
-                <h1 class="cs_hero_title cs_fs_64 cs_mb_34">Calcula el valor estimado de tu propiedad en Nuevo León</h1>
-                <p class="cs_fs_24 mb-0">Valuación por comparables reales de mercado: precio estimado, rango y nivel de confianza en segundos.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
 <section class="cs_gray_bg cs_p96_66">
     <div class="container">
         <div class="row cs_gap_y_24">
-            <div class="col-lg-7">
-                <div class="cs_card cs_style_1 p-4">
-                    <h2 class="cs_fs_38 mb-3">Calculadora de valuación</h2>
-                    <p class="mb-4">Ingresa los datos principales para estimar valor por metodología de comparables y precio por m².</p>
+            <div class="col-lg-8">
+                <div class="cs_card cs_style_1 p-4" id="valuation-form">
+                    <h1 class="cs_fs_42 mb-2">Calculadora de valuación inmobiliaria</h1>
+                    <p class="mb-4">Completa los datos de la propiedad y recibe un valor estimado por comparables reales en Nuevo León.</p>
 
-                    <form id="valuation-form" method="post" action="<?= url_to('valuation.estimate') ?>">
+                    <form id="valuation-form-element" method="post" action="<?= url_to('valuation.estimate') ?>" novalidate>
                         <?= csrf_field() ?>
+                        <input type="hidden" id="property_type" name="property_type" value="casa">
+
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="property_type" class="form-label">Tipo de propiedad *</label>
-                                <select id="property_type" name="property_type" class="form-select" required>
-                                    <option value="">Selecciona...</option>
-                                    <?php foreach ($propertyTypes as $propertyType): ?>
-                                        <option value="<?= esc($propertyType) ?>"><?= esc(ucfirst($propertyType)) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
+                                <label class="form-label">Tipo de propiedad</label>
+                                <input type="text" class="form-control" value="Casa" readonly>
                             </div>
                             <div class="col-md-6">
                                 <label for="municipality" class="form-label">Municipio *</label>
-                                <select id="municipality" name="municipality" class="form-select" required>
-                                    <option value="">Selecciona...</option>
-                                    <?php foreach ($municipalities as $municipality): ?>
-                                        <option value="<?= esc($municipality) ?>"><?= esc($municipality) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
+                                <input id="municipality" name="municipality" type="text" class="form-control" list="municipality-options" placeholder="Ej. Monterrey" required>
+                                <datalist id="municipality-options"></datalist>
                             </div>
                             <div class="col-md-12">
                                 <label for="colony" class="form-label">Colonia *</label>
-                                <input id="colony" name="colony" type="text" class="form-control" required placeholder="Ej. Cumbres 2do Sector">
+                                <input id="colony" name="colony" type="text" class="form-control" list="colony-options" placeholder="Ej. Cumbres 2do Sector" required>
+                                <datalist id="colony-options"></datalist>
+                                <small class="text-muted">Puedes escribir cualquier colonia; también se sugieren colonias del municipio elegido.</small>
                             </div>
                             <div class="col-md-6">
                                 <label for="area_construction_m2" class="form-label">m² construcción *</label>
@@ -91,9 +75,9 @@
                 </div>
             </div>
 
-            <div class="col-lg-5">
+            <div class="col-lg-4">
                 <div class="cs_card cs_style_1 p-4 h-100">
-                    <h3 class="cs_fs_29 mb-3">¿Qué recibirás?</h3>
+                    <h2 class="cs_fs_29 mb-3">¿Qué recibirás?</h2>
                     <ul class="mb-4">
                         <li>Valor estimado en MXN.</li>
                         <li>Rango bajo/alto según dispersión real del mercado.</li>
@@ -149,15 +133,15 @@
             <div class="table-responsive">
                 <table class="table table-striped align-middle" id="comparables-table">
                     <thead>
-                        <tr>
-                            <th>Propiedad</th>
-                            <th>Precio</th>
-                            <th>m²</th>
-                            <th>$/m²</th>
-                            <th>Ubicación</th>
-                            <th>Score</th>
-                            <th>Fuente</th>
-                        </tr>
+                    <tr>
+                        <th>Propiedad</th>
+                        <th>Precio</th>
+                        <th>m²</th>
+                        <th>$/m²</th>
+                        <th>Ubicación</th>
+                        <th>Score</th>
+                        <th>Fuente</th>
+                    </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
@@ -168,9 +152,12 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
+<script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
 <script>
     window.ValoraNLEstimateConfig = {
         estimateUrl: <?= json_encode(url_to('valuation.estimate')) ?>,
+        chartisBaseUrl: 'https://chartismx.com/api',
+        nlStateId: '19',
     };
 </script>
 <script src="<?= base_url('assets/js/home-valuation.js') ?>"></script>
