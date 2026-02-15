@@ -14,6 +14,8 @@
     const $colony = $('#colony');
     const $colonyOptions = $('#colony-options');
 
+    const municipalityMap = new Map();
+
     const $resultsSection = $('#valuation-results-section');
     const $message = $('#valuation-result-message');
     const $estimatedValue = $('#result-estimated-value');
@@ -68,10 +70,22 @@
         $datalist.html(options);
     };
 
+    const municipalityIdFromItem = (item) => item.id || item.municipio || item.cve_mun || item.CVE_MUN || item.value || null;
+
     const loadMunicipalities = () => {
         return $.getJSON(`${chartisBaseUrl}/getMunicipios`, { entidad: nlStateId })
             .done((response) => {
                 const items = Array.isArray(response) ? response : (response.data || []);
+
+                municipalityMap.clear();
+                items.forEach((item) => {
+                    const name = normalizeName(item).trim();
+                    const id = municipalityIdFromItem(item);
+                    if (name !== '' && id !== null && id !== undefined && id !== '') {
+                        municipalityMap.set(name.toLowerCase(), String(id));
+                    }
+                });
+
                 renderDatalist($municipalityOptions, items.map(normalizeName));
             })
             .fail(() => {
@@ -79,16 +93,26 @@
             });
     };
 
-    const loadColonies = (municipalityName) => {
+    const resolveMunicipalityParam = (municipalityInput) => {
+        const normalized = municipalityInput.trim().toLowerCase();
+        if (normalized === '') {
+            return '';
+        }
+
+        return municipalityMap.get(normalized) || municipalityInput.trim();
+    };
+
+    const loadColonies = (municipalityInput) => {
         $colonyOptions.empty();
 
-        if (!municipalityName) {
+        const municipalityParam = resolveMunicipalityParam(municipalityInput);
+        if (!municipalityParam) {
             return;
         }
 
         $.getJSON(`${chartisBaseUrl}/getColonias`, {
             entidad: nlStateId,
-            municipio: municipalityName,
+            municipio: municipalityParam,
         }).done((response) => {
             const items = Array.isArray(response) ? response : (response.data || []);
             renderDatalist($colonyOptions, items.map(normalizeName));
