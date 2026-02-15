@@ -124,3 +124,15 @@ h6 {
 .valuation-results-card table tbody td {
     color: #1e293b;
 }
+
+
+.valuation-results-card table tbody th,
+.valuation-results-card table tbody td,
+.valuation-results-card table tbody td ul,
+.valuation-results-card table tbody td ul li {
+    color: #1e293b !important;
+}
+
+.valuation-results-card table tbody td ul {
+    padding-left: 1.1rem;
+}

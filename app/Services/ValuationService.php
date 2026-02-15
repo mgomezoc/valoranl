@@ -132,6 +132,36 @@ class ValuationService
                     'Ajustamos ese valor según el tamaño de tu casa para no sobreestimar.',
                     'Calculamos un rango bajo y alto para darte una referencia realista.',
                 ],
+                'advisor_detail_steps' => [
+                    sprintf(
+                        '1) Se depuraron comparables activos y se conservaron %d propiedades útiles de %d encontradas en el alcance %s.',
+                        $comparablesUsefulCount,
+                        $comparablesRawCount,
+                        $locationScope,
+                    ),
+                    sprintf(
+                        '2) El precio unitario base se obtuvo con mediana ponderada de similitud: $%s/m².',
+                        number_format($ppuBase, 2),
+                    ),
+                    sprintf(
+                        '3) Se aplicó ajuste por escala al precio unitario para el inmueble objetivo: $%s/m².',
+                        number_format($ppuAdjusted, 2),
+                    ),
+                    sprintf(
+                        '4) Factores de homologación aplicados: Ross-Heidecke %.4f × Negociación %.4f × Equipamiento %.4f = %.4f.',
+                        $rossHeideckeFactor,
+                        $negotiationFactor,
+                        $equipmentFactor,
+                        $adjustmentFactor,
+                    ),
+                    sprintf(
+                        '5) Valor final = (PPU ajustado × m² construidos) × factor homologado = ($%s × %s) × %.4f = $%s MXN.',
+                        number_format($ppuAdjusted, 2),
+                        number_format((float) $subject['area_construction_m2'], 2),
+                        $adjustmentFactor,
+                        number_format($estimatedValue, 2),
+                    ),
+                ],
             ],
         ];
     }
@@ -542,6 +572,27 @@ class ValuationService
                     'No encontramos suficientes propiedades parecidas en ese momento.',
                     'Usamos una referencia general de mercado para darte una orientación rápida.',
                     'El resultado es informativo y puede variar frente a un avalúo profesional.',
+                ],
+                'advisor_detail_steps' => [
+                    '1) No se reunió muestra mínima de comparables con datos completos para un método estadístico robusto.',
+                    sprintf(
+                        '2) Se usó un precio unitario de referencia de $%s/m² (fallback de mercado).',
+                        number_format((float) self::FALLBACK_BASE_PPU, 2),
+                    ),
+                    sprintf(
+                        '3) Factores de homologación: Ross-Heidecke %.4f × Negociación %.4f × Equipamiento %.4f = %.4f.',
+                        $rossHeideckeFactor,
+                        $negotiationFactor,
+                        $equipmentFactor,
+                        $adjustmentFactor,
+                    ),
+                    sprintf(
+                        '4) Valor final sintético = (PPU fallback × m² construidos) × factor homologado = ($%s × %s) × %.4f = $%s MXN.',
+                        number_format((float) self::FALLBACK_BASE_PPU, 2),
+                        number_format((float) $subject['area_construction_m2'], 2),
+                        $adjustmentFactor,
+                        number_format($estimatedValue, 2),
+                    ),
                 ],
             ],
         ];

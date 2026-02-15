@@ -166,6 +166,12 @@
                                 <ul class="mb-0" id="calc-formulas"></ul>
                             </td>
                         </tr>
+                        <tr>
+                            <th>Detalle para asesores inmobiliarios</th>
+                            <td>
+                                <ul class="mb-0" id="calc-advisor-details"></ul>
+                            </td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
