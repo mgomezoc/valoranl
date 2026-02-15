@@ -44,6 +44,9 @@ class ValuationService
 
         $prepared = $this->prepareComparables($rawComparables, $subject, $locationScope);
 
+        $comparablesRawCount = count($rawComparables);
+        $comparablesUsefulCount = count($prepared);
+
         if ($prepared === []) {
             return $this->buildSyntheticEstimate($subject);
         }
@@ -55,8 +58,10 @@ class ValuationService
         $ppuAdjusted = $this->applySizeAdjustment($ppuBase, $subject['area_construction_m2'], $prepared);
 
         $estimatedValue = $ppuAdjusted * $subject['area_construction_m2'];
-        $estimatedLow = $this->percentile($ppus, 0.25) * $subject['area_construction_m2'];
-        $estimatedHigh = $this->percentile($ppus, 0.75) * $subject['area_construction_m2'];
+        $ppuP25 = $this->percentile($ppus, 0.25);
+        $ppuP75 = $this->percentile($ppus, 0.75);
+        $estimatedLow = $ppuP25 * $subject['area_construction_m2'];
+        $estimatedHigh = $ppuP75 * $subject['area_construction_m2'];
 
         $confidence = $this->buildConfidence($prepared, $locationScope);
 
@@ -78,6 +83,34 @@ class ValuationService
             'confidence_score' => $confidence['score'],
             'confidence_reasons' => $confidence['reasons'],
             'location_scope' => $locationScope,
+            'calc_breakdown' => [
+                'method' => 'comparables_v1',
+                'filters' => [
+                    'status' => 'active',
+                    'price_type' => 'sale',
+                    'property_type' => $subject['property_type'],
+                    'municipality' => $subject['municipality'],
+                    'colony' => $subject['colony'],
+                    'area_range_m2' => [
+                        'min' => round($areaMin, 2),
+                        'max' => round($areaMax, 2),
+                    ],
+                ],
+                'scope_used' => $locationScope,
+                'comparables_raw' => $comparablesRawCount,
+                'comparables_useful' => $comparablesUsefulCount,
+                'ppu_stats' => [
+                    'weighted_median' => round($ppuBase, 2),
+                    'adjusted_ppu' => round($ppuAdjusted, 2),
+                    'p25' => round($ppuP25, 2),
+                    'p75' => round($ppuP75, 2),
+                ],
+                'formula' => [
+                    'estimated_value' => 'adjusted_ppu * subject_area_m2',
+                    'estimated_low' => 'p25_ppu * subject_area_m2',
+                    'estimated_high' => 'p75_ppu * subject_area_m2',
+                ],
+            ],
         ];
     }
 
@@ -446,6 +479,23 @@ class ValuationService
                 'Este resultado es informativo y no sustituye un avalúo profesional.',
             ],
             'location_scope' => 'sintetico',
+            'calc_breakdown' => [
+                'method' => 'synthetic_fallback_v1',
+                'scope_used' => 'sintetico',
+                'comparables_raw' => 0,
+                'comparables_useful' => 0,
+                'ppu_stats' => [
+                    'weighted_median' => 0,
+                    'adjusted_ppu' => self::FALLBACK_BASE_PPU,
+                    'p25' => self::FALLBACK_BASE_PPU * 0.85,
+                    'p75' => self::FALLBACK_BASE_PPU * 1.15,
+                ],
+                'formula' => [
+                    'estimated_value' => 'fallback_ppu * subject_area_m2',
+                    'estimated_low' => '(fallback_ppu * 0.85) * subject_area_m2',
+                    'estimated_high' => '(fallback_ppu * 1.15) * subject_area_m2',
+                ],
+            ],
         ];
     }
 

@@ -25,6 +25,14 @@
     const $confidenceReasons = $('#result-confidence-reasons');
     const $comparablesBody = $('#comparables-table tbody');
 
+    const $calcMethod = $('#calc-method');
+    const $calcScope = $('#calc-scope');
+    const $calcCounts = $('#calc-counts');
+    const $calcPpuWeighted = $('#calc-ppu-weighted');
+    const $calcPpuAdjusted = $('#calc-ppu-adjusted');
+    const $calcPpuRange = $('#calc-ppu-range');
+    const $calcFormulas = $('#calc-formulas');
+
     const formatCurrency = (amount) => {
         if (amount === null || amount === undefined || Number.isNaN(Number(amount))) {
             return 'N/D';
@@ -148,6 +156,28 @@
         $comparablesBody.html(rows);
     };
 
+
+    const renderBreakdown = (response) => {
+        const breakdown = response.calc_breakdown || {};
+        const ppuStats = breakdown.ppu_stats || {};
+        const formulas = breakdown.formula || {};
+
+        $calcMethod.text(breakdown.method || 'N/D');
+        $calcScope.text(breakdown.scope_used || response.location_scope || 'N/D');
+        $calcCounts.text(`${breakdown.comparables_raw ?? 'N/D'} / ${breakdown.comparables_useful ?? 'N/D'}`);
+        $calcPpuWeighted.text(formatCurrency(ppuStats.weighted_median));
+        $calcPpuAdjusted.text(formatCurrency(ppuStats.adjusted_ppu));
+        $calcPpuRange.text(`${formatCurrency(ppuStats.p25)} - ${formatCurrency(ppuStats.p75)}`);
+
+        const formulaItems = [
+            `Valor estimado: ${formulas.estimated_value || 'N/D'}`,
+            `Rango bajo: ${formulas.estimated_low || 'N/D'}`,
+            `Rango alto: ${formulas.estimated_high || 'N/D'}`,
+        ].map((item) => `<li>${item}</li>`).join('');
+
+        $calcFormulas.html(formulaItems);
+    };
+
     const renderResult = (response) => {
         $resultsSection.show();
         $message.text(response.message || 'Resultado generado.');
@@ -163,6 +193,7 @@
 
         $confidenceReasons.html(reasons);
         renderComparables(response.comparables || []);
+        renderBreakdown(response);
 
         $('html, body').animate({ scrollTop: $resultsSection.offset().top - 80 }, 400);
     };

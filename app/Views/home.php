@@ -129,7 +129,49 @@
                 <ul id="result-confidence-reasons" class="mb-0"></ul>
             </div>
 
-            <h3 class="cs_fs_29 mb-3">Top comparables</h3>
+
+
+            <div class="mb-4">
+                <h3 class="cs_fs_29 mb-3">¿Cómo se calculó este resultado?</h3>
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle" id="calculation-breakdown-table">
+                        <tbody>
+                        <tr>
+                            <th>Método</th>
+                            <td id="calc-method">—</td>
+                        </tr>
+                        <tr>
+                            <th>Alcance usado</th>
+                            <td id="calc-scope">—</td>
+                        </tr>
+                        <tr>
+                            <th>Comparables (raw / útiles)</th>
+                            <td id="calc-counts">—</td>
+                        </tr>
+                        <tr>
+                            <th>PPU mediana ponderada</th>
+                            <td id="calc-ppu-weighted">—</td>
+                        </tr>
+                        <tr>
+                            <th>PPU ajustado</th>
+                            <td id="calc-ppu-adjusted">—</td>
+                        </tr>
+                        <tr>
+                            <th>P25 / P75 PPU</th>
+                            <td id="calc-ppu-range">—</td>
+                        </tr>
+                        <tr>
+                            <th>Fórmulas</th>
+                            <td>
+                                <ul class="mb-0" id="calc-formulas"></ul>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+                        <h3 class="cs_fs_29 mb-3">Top comparables</h3>
             <div class="table-responsive">
                 <table class="table table-striped align-middle" id="comparables-table">
                     <thead>
