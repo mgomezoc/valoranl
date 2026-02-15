@@ -74,6 +74,13 @@ class ListingModel extends Model
             ->findAll($limit);
     }
 
+    public function getListingsForMarketStats(int $limit = 400): array
+    {
+        return $this->select('listings.id, listings.price_amount, listings.area_construction_m2, listings.status, listings.municipality')
+            ->orderBy('listings.updated_at', 'DESC')
+            ->findAll($limit);
+    }
+
     public function findWithSource(int $id): ?array
     {
         return $this->select('listings.*, sources.source_name, sources.base_url')

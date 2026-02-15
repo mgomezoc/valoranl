@@ -2,29 +2,30 @@
 
 namespace App\Controllers;
 
-use App\Models\ListingModel;
+use App\Libraries\ListingViewService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
 class Home extends BaseController
 {
-    public function __construct(private readonly ListingModel $listingModel = new ListingModel())
+    public function __construct(private readonly ListingViewService $listingViewService = new ListingViewService())
     {
     }
 
     public function index(): string
     {
-        $listings = $this->listingModel->getLatestListings();
+        $homeData = $this->listingViewService->getHomeData();
 
         return view('home', [
-            'pageTitle'       => 'ValoraNL | Propiedades en Nuevo León',
-            'metaDescription' => 'Consulta propiedades consolidadas desde múltiples portales inmobiliarios.',
-            'listings'        => $listings,
+            'pageTitle'       => 'ValoraNL | Inteligencia de datos inmobiliarios en Nuevo León',
+            'metaDescription' => 'Plataforma para consolidar listings, analizar mercado y estimar valor de propiedades en Nuevo León.',
+            'cards'           => $homeData['cards'],
+            'marketStats'     => $homeData['stats'],
         ]);
     }
 
     public function show(int $id): string
     {
-        $listing = $this->listingModel->findWithSource($id);
+        $listing = $this->listingViewService->getListingDetailData($id);
 
         if ($listing === null) {
             throw PageNotFoundException::forPageNotFound('No se encontró la propiedad solicitada.');
@@ -32,7 +33,7 @@ class Home extends BaseController
 
         return view('listings/detail', [
             'pageTitle'       => ($listing['title'] ?? 'Detalle de propiedad') . ' | ValoraNL',
-            'metaDescription' => 'Detalle completo de la propiedad seleccionada en ValoraNL.',
+            'metaDescription' => 'Detalle de la propiedad con métricas de mercado y valuación estimada.',
             'listing'         => $listing,
         ]);
     }
