@@ -218,6 +218,14 @@
                             <td id="calc-counts">—</td>
                         </tr>
                         <tr>
+                            <th>¿Se usaron propiedades de la base para calcular?</th>
+                            <td id="calc-db-usage">—</td>
+                        </tr>
+                        <tr>
+                            <th>Origen de los datos usados</th>
+                            <td id="calc-data-origin">—</td>
+                        </tr>
+                        <tr>
                             <th>PPU promedio homologado</th>
                             <td id="calc-ppu-weighted">—</td>
                         </tr>

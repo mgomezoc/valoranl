@@ -32,6 +32,8 @@
     const $calcMethod = $('#calc-method');
     const $calcScope = $('#calc-scope');
     const $calcCounts = $('#calc-counts');
+    const $calcDbUsage = $('#calc-db-usage');
+    const $calcDataOrigin = $('#calc-data-origin');
     const $calcPpuWeighted = $('#calc-ppu-weighted');
     const $calcPpuAdjusted = $('#calc-ppu-adjusted');
     const $calcFormulas = $('#calc-formulas');
@@ -221,16 +223,25 @@
             sintetico: 'Referencia general de mercado',
         };
 
+        const dataOrigin = breakdown.data_origin || {};
+        const usedDatabase = breakdown.used_properties_database === true || dataOrigin.used_for_calculation === true;
+
         $calcMethod.text(methodLabel);
         $calcScope.text(scopeLabelMap[breakdown.scope_used] || breakdown.scope_used || response.location_scope || 'N/D');
         $calcCounts.text(`${breakdown.comparables_raw ?? 'N/D'} / ${breakdown.comparables_useful ?? 'N/D'}`);
+        $calcDbUsage.text(usedDatabase ? 'Sí. Se utilizaron comparables de la base de propiedades.' : 'No. Se usó referencia de mercado sin comparables utilizables.');
+        $calcDataOrigin.text(dataOrigin.source_label || 'N/D');
         $calcPpuWeighted.text(formatCurrency(ppuStats.ppu_promedio));
         $calcPpuAdjusted.text(formatCurrency(ppuStats.ppu_aplicado));
 
-        const formulaItems = humanSteps.map((item) => `<li>${item}</li>`).join('');
+        const formulaItems = humanSteps.length > 0
+            ? humanSteps.map((item) => `<li>${item}</li>`).join('')
+            : '<li>Sin explicación disponible.</li>';
         $calcFormulas.html(formulaItems);
 
-        const advisorItems = advisorSteps.map((item) => `<li>${item}</li>`).join('');
+        const advisorItems = advisorSteps.length > 0
+            ? advisorSteps.map((item) => `<li>${item}</li>`).join('')
+            : '<li>Sin detalle técnico disponible.</li>';
         $calcAdvisorDetails.html(advisorItems);
     };
 

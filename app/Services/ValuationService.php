@@ -110,6 +110,14 @@ class ValuationService
                     ],
                 ],
                 'scope_used' => $locationScope,
+                'used_properties_database' => $comparablesUsefulCount > 0,
+                'data_origin' => [
+                    'source' => 'listings',
+                    'source_label' => 'Base interna de propiedades publicadas (tabla listings).',
+                    'used_for_calculation' => $comparablesUsefulCount > 0,
+                    'records_found' => $comparablesRawCount,
+                    'records_used' => $comparablesUsefulCount,
+                ],
                 'comparables_raw' => $comparablesRawCount,
                 'comparables_useful' => $comparablesUsefulCount,
                 'ppu_stats' => [
@@ -130,12 +138,15 @@ class ValuationService
                     'estimated_low' => 'ROUNDUP(PPU_aplicado × 0.9 × m²_construcción, -3)',
                     'estimated_high' => 'ROUNDUP(PPU_aplicado × 1.1 × m²_construcción, -3)',
                 ],
-                'human_steps' => [
-                    'Buscamos propiedades parecidas en tu zona y, si no alcanza, ampliamos el alcance.',
-                    'Calculamos factores de homologación por cada comparable (zona, ubicación, superficie, edad, equipamiento, negociación).',
-                    'Promediamos los precios por m² homologados y redondeamos.',
-                    'Calculamos valor final y rangos ±10%.',
-                ],
+                'human_steps' => $this->buildHumanSteps(
+                    $comparablesRawCount,
+                    $comparablesUsefulCount,
+                    $locationScope,
+                    $ppuPromedio,
+                    $ppuAplicado,
+                    $subject,
+                    $estimatedValue,
+                ),
                 'advisor_detail_steps' => $this->buildAdvisorSteps(
                     $comparablesUsefulCount,
                     $comparablesRawCount,
@@ -572,6 +583,14 @@ class ValuationService
             'calc_breakdown' => [
                 'method' => 'synthetic_fallback_v2',
                 'scope_used' => 'sintetico',
+                'used_properties_database' => false,
+                'data_origin' => [
+                    'source' => 'fallback_reference',
+                    'source_label' => 'Referencia general de mercado (sin comparables utilizables en base).',
+                    'used_for_calculation' => false,
+                    'records_found' => 0,
+                    'records_used' => 0,
+                ],
                 'comparables_raw' => 0,
                 'comparables_useful' => 0,
                 'ppu_stats' => [
@@ -588,8 +607,18 @@ class ValuationService
                 ],
                 'human_steps' => [
                     'No encontramos suficientes propiedades parecidas en ese momento.',
-                    'Usamos una referencia general de mercado para darte una orientación rápida.',
-                    'El resultado es informativo y puede variar frente a un avalúo profesional.',
+                    sprintf(
+                        'No se usaron propiedades de la base en este cálculo (0 encontradas útiles). Se aplicó una referencia base de $%s/m².',
+                        number_format((float) self::FALLBACK_BASE_PPU, 0),
+                    ),
+                    sprintf(
+                        'Cálculo: $%s × %s m² × %.4f = $%s MXN (redondeado a miles).',
+                        number_format((float) self::FALLBACK_BASE_PPU, 0),
+                        number_format((float) $subject['area_construction_m2'], 2),
+                        $adjustmentFactor,
+                        number_format($estimatedValue, 0),
+                    ),
+                    'El resultado es orientativo y puede variar frente a un avalúo profesional.',
                 ],
                 'advisor_detail_steps' => [
                     '1) No se reunió muestra mínima de comparables con datos completos para un método estadístico robusto.',
@@ -663,6 +692,59 @@ class ValuationService
                 number_format($this->valuationMath->roundValueToThousands($ppuAplicado * 1.1 * $subject['area_construction_m2']), 0),
             ),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $subject
+     * @return array<int, string>
+     */
+    private function buildHumanSteps(
+        int $rawCount,
+        int $usefulCount,
+        string $scope,
+        float $ppuPromedio,
+        float $ppuAplicado,
+        array $subject,
+        float $estimatedValue,
+    ): array {
+        $scopeLabel = $this->scopeLabel($scope);
+
+        return [
+            sprintf(
+                'Sí usamos datos de la base de propiedades: encontramos %d y usamos %d comparables válidos (%s).',
+                $rawCount,
+                $usefulCount,
+                $scopeLabel,
+            ),
+            'A cada comparable se le ajustó su precio por m² con factores de zona, ubicación, superficie, edad, equipamiento y negociación para hacerlo comparable con tu inmueble.',
+            sprintf(
+                'Promedio homologado: $%s/m² → valor aplicado: $%s/m² (redondeado a decenas).',
+                number_format($ppuPromedio, 2),
+                number_format($ppuAplicado, 0),
+            ),
+            sprintf(
+                'Valor final: $%s/m² × %s m² = $%s MXN (redondeado a miles).',
+                number_format($ppuAplicado, 0),
+                number_format((float) $subject['area_construction_m2'], 2),
+                number_format($estimatedValue, 0),
+            ),
+            sprintf(
+                'Rango de orientación: mínimo $%s y máximo $%s (±10%%).',
+                number_format($this->valuationMath->roundValueToThousands($ppuAplicado * 0.9 * $subject['area_construction_m2']), 0),
+                number_format($this->valuationMath->roundValueToThousands($ppuAplicado * 1.1 * $subject['area_construction_m2']), 0),
+            ),
+        ];
+    }
+
+    private function scopeLabel(string $scope): string
+    {
+        return match ($scope) {
+            'colonia' => 'misma colonia',
+            'municipio' => 'mismo municipio',
+            'municipio_ampliado' => 'municipio ampliado',
+            'estado' => 'referencia estatal',
+            default => $scope,
+        };
     }
 
     /**
