@@ -901,3 +901,52 @@ h6 {
 #valuation-form-errors {
     border-radius: 10px;
 }
+
+/* ─── Geocode status ─── */
+#geocode-status {
+    font-size: 0.85rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 8px;
+}
+
+#geocode-status.geocode-searching {
+    color: var(--vn-cyan);
+}
+
+#geocode-status.geocode-success {
+    color: var(--vn-green);
+}
+
+#geocode-status.geocode-error {
+    color: var(--vn-yellow);
+}
+
+/* ─── Address input group ─── */
+.valuation-card .input-group .input-group-text {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(18, 48, 58, 0.26);
+    border-right: none;
+    color: #5f6f76;
+    border-radius: 10px 0 0 10px;
+}
+
+.valuation-card .input-group .form-control {
+    border-radius: 0;
+}
+
+.valuation-card .input-group .btn {
+    border-radius: 0 10px 10px 0;
+    white-space: nowrap;
+}
+
+/* ─── Readonly coords styling ─── */
+.valuation-card .form-control[readonly] {
+    background-color: rgba(255, 255, 255, 0.85);
+    color: #2c7a8b;
+    font-weight: 600;
+}
+
+/* ─── Odometer in hero ─── */
+.vn-result-hero__value.odometer {
+    display: inline-block;
+}

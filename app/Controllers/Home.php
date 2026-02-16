@@ -37,8 +37,9 @@ class Home extends BaseController
             'bathrooms' => 'permit_empty|decimal|greater_than_equal_to[0]',
             'half_bathrooms' => 'permit_empty|integer|greater_than_equal_to[0]',
             'parking' => 'permit_empty|integer|greater_than_equal_to[0]',
-            'lat' => 'permit_empty|decimal',
-            'lng' => 'permit_empty|decimal',
+            'address' => 'permit_empty|max_length[300]',
+            'lat' => 'required|decimal',
+            'lng' => 'required|decimal',
         ];
 
         if (! $this->validateData($postData, $rules)) {

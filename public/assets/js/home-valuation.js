@@ -59,7 +59,7 @@
     const totalSteps = 3;
 
     const stepRequiredFields = {
-        1: ['municipality', 'colony'],
+        1: ['address', 'municipality', 'colony', 'lat', 'lng'],
         2: ['area_construction_m2', 'age_years'],
         3: [],
     };
@@ -251,6 +251,88 @@
         }
         return '4';
     };
+
+    // ─── Geocoding with Nominatim ───
+    const $address = $('#address');
+    const $lat = $('#lat');
+    const $lng = $('#lng');
+    const $geocodeBtn = $('#geocode-btn');
+    const $geocodeStatus = $('#geocode-status');
+    const $manualCoordsToggle = $('#manual-coords-toggle');
+
+    let geocodeDebounceTimer = null;
+
+    const setGeocodeStatus = (type, message) => {
+        $geocodeStatus
+            .removeClass('geocode-searching geocode-success geocode-error')
+            .addClass(`geocode-${type}`)
+            .html(message)
+            .show();
+    };
+
+    const geocodeAddress = (address) => {
+        if (!address || address.trim().length < 5) return;
+
+        const query = `${address.trim()}, Nuevo León, México`;
+        setGeocodeStatus('searching', '<i class="fa-solid fa-spinner fa-spin"></i> Buscando coordenadas...');
+        $geocodeBtn.prop('disabled', true);
+
+        $.ajax({
+            url: 'https://nominatim.openstreetmap.org/search',
+            data: {
+                q: query,
+                format: 'json',
+                limit: 1,
+                countrycodes: 'mx',
+            },
+            headers: { 'User-Agent': 'ValoraNL/1.0' },
+            dataType: 'json',
+        }).done((results) => {
+            if (results && results.length > 0) {
+                const result = results[0];
+                $lat.val(parseFloat(result.lat).toFixed(6));
+                $lng.val(parseFloat(result.lon).toFixed(6));
+                $lat.prop('readonly', true);
+                $lng.prop('readonly', true);
+                setGeocodeStatus('success', '<i class="fa-solid fa-circle-check"></i> Coordenadas encontradas.');
+                // Clear validation errors on lat/lng
+                $lat.removeClass('is-invalid');
+                $lng.removeClass('is-invalid');
+                $lat.closest('.col-6').find('.invalid-feedback').remove();
+                $lng.closest('.col-6').find('.invalid-feedback').remove();
+            } else {
+                setGeocodeStatus('error', '<i class="fa-solid fa-triangle-exclamation"></i> No se encontraron coordenadas. Ingresa manualmente.');
+                $lat.prop('readonly', false);
+                $lng.prop('readonly', false);
+            }
+        }).fail(() => {
+            setGeocodeStatus('error', '<i class="fa-solid fa-triangle-exclamation"></i> Error al buscar. Ingresa coordenadas manualmente.');
+            $lat.prop('readonly', false);
+            $lng.prop('readonly', false);
+        }).always(() => {
+            $geocodeBtn.prop('disabled', false);
+        });
+    };
+
+    $geocodeBtn.on('click', () => {
+        geocodeAddress($address.val());
+    });
+
+    $address.on('blur', function () {
+        clearTimeout(geocodeDebounceTimer);
+        geocodeDebounceTimer = setTimeout(() => {
+            if ($address.val().trim().length >= 5 && !$lat.val()) {
+                geocodeAddress($address.val());
+            }
+        }, 500);
+    });
+
+    $manualCoordsToggle.on('click', (e) => {
+        e.preventDefault();
+        $lat.prop('readonly', false);
+        $lng.prop('readonly', false);
+        $lat.focus();
+    });
 
     // ─── Confidence helpers ───
     const getConfidenceLevel = (score) => {
@@ -550,8 +632,9 @@
                 bathrooms: { number: true, min: 0 },
                 half_bathrooms: { digits: true, min: 0 },
                 parking: { digits: true, min: 0 },
-                lat: { number: true },
-                lng: { number: true },
+                address: { required: true, minlength: 5 },
+                lat: { required: true, number: true },
+                lng: { required: true, number: true },
             },
             messages: {
                 municipality: { required: 'Selecciona o escribe un municipio.' },
@@ -564,6 +647,12 @@
                     required: 'Ingresa la edad del inmueble.',
                     max: 'La edad máxima es 100 años.',
                 },
+                address: {
+                    required: 'Ingresa la dirección del inmueble.',
+                    minlength: 'La dirección debe tener al menos 5 caracteres.',
+                },
+                lat: { required: 'Se requiere la latitud. Usa el botón Buscar o ingresa manualmente.' },
+                lng: { required: 'Se requiere la longitud. Usa el botón Buscar o ingresa manualmente.' },
             },
         });
     };

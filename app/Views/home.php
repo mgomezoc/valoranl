@@ -107,21 +107,32 @@
                                     <small class="text-muted">Puedes escribir cualquier colonia; también se sugieren colonias del municipio elegido.</small>
                                 </div>
                                 <div class="col-12">
-                                    <a class="vn-coords-toggle" data-bs-toggle="collapse" href="#coords-fields" role="button" aria-expanded="false">
-                                        <i class="fa-solid fa-map-pin"></i> Agregar coordenadas (opcional)
-                                    </a>
-                                    <div class="collapse mt-2" id="coords-fields">
-                                        <div class="row g-3">
-                                            <div class="col-6">
-                                                <label for="lat" class="form-label">Latitud</label>
-                                                <input id="lat" name="lat" type="number" step="0.000001" class="form-control" placeholder="25.6866">
-                                            </div>
-                                            <div class="col-6">
-                                                <label for="lng" class="form-label">Longitud</label>
-                                                <input id="lng" name="lng" type="number" step="0.000001" class="form-control" placeholder="-100.3161">
-                                            </div>
-                                        </div>
+                                    <label for="address" class="form-label">Dirección completa *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-road"></i></span>
+                                        <input id="address" name="address" type="text" class="form-control"
+                                               placeholder="Ej. Av. Revolución 1200, Cumbres, Monterrey" required>
+                                        <button type="button" id="geocode-btn" class="btn vn-btn vn-btn--primary">
+                                            <i class="fa-solid fa-magnifying-glass-location"></i> Buscar
+                                        </button>
                                     </div>
+                                    <small class="text-muted">La dirección se usa para obtener coordenadas precisas automáticamente.</small>
+                                    <div id="geocode-status" class="mt-1" style="display:none;"></div>
+                                </div>
+                                <div class="col-6">
+                                    <label for="lat" class="form-label">Latitud *</label>
+                                    <input id="lat" name="lat" type="number" step="0.000001" class="form-control"
+                                           readonly required placeholder="Auto-detectada">
+                                </div>
+                                <div class="col-6">
+                                    <label for="lng" class="form-label">Longitud *</label>
+                                    <input id="lng" name="lng" type="number" step="0.000001" class="form-control"
+                                           readonly required placeholder="Auto-detectada">
+                                </div>
+                                <div class="col-12">
+                                    <a href="#" id="manual-coords-toggle" class="vn-coords-toggle">
+                                        <i class="fa-solid fa-pen"></i> Ingresar coordenadas manualmente
+                                    </a>
                                 </div>
                             </div>
                             <div class="vn-step-nav">
@@ -271,7 +282,7 @@
         <!-- Result hero -->
         <div class="vn-result-hero wow fadeIn" data-wow-duration="0.6s">
             <div class="vn-result-hero__label">Valor estimado de mercado</div>
-            <div class="vn-result-hero__value" id="result-estimated-value">—</div>
+            <div class="vn-result-hero__value odometer" id="result-estimated-value">0</div>
             <p class="vn-result-hero__message" id="valuation-result-message"></p>
 
             <!-- Range bar -->
