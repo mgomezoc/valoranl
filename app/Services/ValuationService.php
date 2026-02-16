@@ -47,7 +47,7 @@ class ValuationService
         $comparablesUsefulCount = count($prepared);
 
         if ($prepared === []) {
-            return $this->buildNoComparablesEstimate(
+            return $this->buildSyntheticFallbackEstimate(
                 subject: $subject,
                 locationScope: $locationScope,
                 rawCount: $comparablesRawCount,
@@ -501,32 +501,44 @@ class ValuationService
      * @param array<string, mixed> $subject
      * @return array<string, mixed>
      */
-    private function buildNoComparablesEstimate(array $subject, string $locationScope, int $rawCount, int $usefulCount): array
+    private function buildSyntheticFallbackEstimate(array $subject, string $locationScope, int $rawCount, int $usefulCount): array
     {
+        $fallbackPpu = 18000.0;
+        $rossHeideckeFactor = $this->valuationMath->rossHeideckeFactor(
+            ageYears: $subject['age_years'],
+            conservationLevel: $subject['conservation_level'],
+        );
+        $negotiationFactor = $this->valuationMath->negotiationFactor();
+        $adjustmentFactor = round($rossHeideckeFactor * $negotiationFactor, 4);
+
+        $rawValue = $fallbackPpu * $subject['area_construction_m2'] * $adjustmentFactor;
+        $estimatedValue = $this->valuationMath->roundValueToThousands($rawValue);
+        $rangeSpread = (new \Config\Valuation())->rangeSpread;
+
         return [
             'ok' => true,
-            'message' => 'No se pudo generar valuación con datos de la misma colonia o municipio por falta de comparables útiles.',
+            'message' => 'No hubo comparables útiles en colonia/municipio; se muestra una estimación de apoyo con baja confianza.',
             'subject' => $subject,
-            'estimated_value' => null,
-            'estimated_low' => null,
-            'estimated_high' => null,
-            'ppu_base' => null,
+            'estimated_value' => $estimatedValue,
+            'estimated_low' => $this->valuationMath->roundValueToThousands($estimatedValue * (1 - $rangeSpread)),
+            'estimated_high' => $this->valuationMath->roundValueToThousands($estimatedValue * (1 + $rangeSpread)),
+            'ppu_base' => $fallbackPpu,
             'comparables_count' => 0,
             'comparables' => [],
-            'confidence_score' => 0,
+            'confidence_score' => 18,
             'confidence_reasons' => [
                 'No se encontraron comparables útiles dentro de la misma colonia o municipio.',
-                'No se utilizaron referencias estatales ni sintéticas para evitar mezclar zonas fuera del criterio solicitado.',
-                'Intenta de nuevo con más datos del inmueble o revisa colonia/municipio.',
+                'Se calculó una estimación de apoyo con referencia base de mercado (sin comparables directos).',
+                'El resultado es orientativo y su confiabilidad es baja.',
             ],
             'location_scope' => $locationScope,
             'calc_breakdown' => [
-                'method' => 'comparables_local_only',
+                'method' => 'synthetic_local_fallback',
                 'scope_used' => $locationScope,
                 'used_properties_database' => false,
                 'data_origin' => [
-                    'source' => 'listings',
-                    'source_label' => 'Base interna de propiedades publicadas (tabla listings).',
+                    'source' => 'fallback_reference',
+                    'source_label' => 'Referencia base de mercado para orientación (sin comparables locales útiles).',
                     'used_for_calculation' => false,
                     'records_found' => $rawCount,
                     'records_used' => $usefulCount,
@@ -535,26 +547,59 @@ class ValuationService
                 'comparables_useful' => $usefulCount,
                 'ppu_stats' => [
                     'ppu_promedio' => null,
-                    'ppu_aplicado' => null,
+                    'ppu_aplicado' => $fallbackPpu,
+                ],
+                'valuation_factors' => [
+                    'ross_heidecke' => $rossHeideckeFactor,
+                    'negotiation' => $negotiationFactor,
+                    'combined_adjustment_factor' => $adjustmentFactor,
+                ],
+                'formula' => [
+                    'estimated_value' => 'ROUNDUP(fallback_ppu × m²_construcción × adjustment_factor, -3)',
                 ],
                 'human_steps' => [
                     sprintf(
-                        'Se buscó en %s y se encontraron %d propiedades, pero 0 comparables útiles para calcular.',
+                        'Se buscaron comparables en %s: %d encontrados, %d útiles. Al no haber muestra suficiente, aplicamos una estimación de apoyo.',
                         $this->scopeLabel($locationScope),
-                        $rawCount,
-                    ),
-                    'No se usaron propiedades fuera de tu colonia/municipio, tal como el criterio solicitado.',
-                    'Por ello no se muestra un valor estimado en este resultado.',
-                ],
-                'advisor_detail_steps' => [
-                    sprintf(
-                        '1) Alcance aplicado: %s. Registros encontrados: %d. Comparables útiles: %d.',
-                        $locationScope,
                         $rawCount,
                         $usefulCount,
                     ),
-                    '2) Se descartó usar fallback estatal/sintético para respetar la restricción de ubicación.',
-                    '3) Resultado sin monto de valuación por insuficiencia de muestra local.',
+                    sprintf(
+                        'Se usó un PPU base de $%s/m² con ajuste por estado/edad (Ross-Heidecke) y negociación.',
+                        number_format($fallbackPpu, 0),
+                    ),
+                    sprintf(
+                        'Cálculo estimado: $%s × %s m² × %.4f = $%s MXN.',
+                        number_format($fallbackPpu, 0),
+                        number_format((float) $subject['area_construction_m2'], 2),
+                        $adjustmentFactor,
+                        number_format($estimatedValue, 0),
+                    ),
+                    'Importante: este valor es orientativo y tiene baja confiabilidad por falta de comparables locales.',
+                ],
+                'advisor_detail_steps' => [
+                    sprintf(
+                        '1) Búsqueda local restringida (colonia/municipio). Registros encontrados: %d. Utilizables: %d.',
+                        $rawCount,
+                        $usefulCount,
+                    ),
+                    sprintf(
+                        '2) Fallback sintético local: PPU base $%s/m².',
+                        number_format($fallbackPpu, 2),
+                    ),
+                    sprintf(
+                        '3) Ajuste aplicado: Ross-Heidecke %.4f × Negociación %.4f = %.4f.',
+                        $rossHeideckeFactor,
+                        $negotiationFactor,
+                        $adjustmentFactor,
+                    ),
+                    sprintf(
+                        '4) Valor final = ROUNDUP($%s × %s × %.4f, -3) = $%s MXN.',
+                        number_format($fallbackPpu, 2),
+                        number_format((float) $subject['area_construction_m2'], 2),
+                        $adjustmentFactor,
+                        number_format($estimatedValue, 0),
+                    ),
                 ],
             ],
         ];
