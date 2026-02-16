@@ -1,10 +1,18 @@
 :root {
     --vn-deep-teal: #002b36;
     --vn-gold: #e6d7b8;
+    --vn-gold-bright: #f0e2c0;
     --vn-white: #ffffff;
     --vn-cyan: #2c7a8b;
     --vn-slate: #4a5568;
     --vn-dark: #1f373f;
+    --vn-green: #22c55e;
+    --vn-yellow: #eab308;
+    --vn-red: #ef4444;
+    --vn-glass-bg: rgba(6, 43, 54, 0.55);
+    --vn-glass-border: rgba(230, 215, 184, 0.22);
+    --vn-radius: 16px;
+    --vn-transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body {
@@ -67,7 +75,7 @@ h6 {
     border: 1px solid rgba(230, 215, 184, 0.45);
 }
 
-/* Home valuation readability improvements */
+/* ─── Valuation page base ─── */
 .valuation-page {
     background: linear-gradient(180deg, rgba(1, 31, 39, 0.76) 0%, rgba(2, 42, 53, 0.9) 100%);
 }
@@ -76,6 +84,7 @@ h6 {
     background: rgba(6, 43, 54, 0.84);
     border: 1px solid rgba(230, 215, 184, 0.28);
     box-shadow: 0 12px 35px rgba(0, 0, 0, 0.28);
+    border-radius: var(--vn-radius);
 }
 
 .valuation-card,
@@ -87,17 +96,22 @@ h6 {
     color: #f2f5f7 !important;
 }
 
-.valuation-card .form-control {
+.valuation-card .form-control,
+.valuation-card .form-select {
     background-color: rgba(255, 255, 255, 0.98);
     color: #12303a;
     border: 1px solid rgba(18, 48, 58, 0.26);
+    border-radius: 10px;
+    padding: 0.6rem 0.85rem;
+    transition: border-color var(--vn-transition), box-shadow var(--vn-transition);
 }
 
 .valuation-card .form-control::placeholder {
     color: #5f6f76;
 }
 
-.valuation-card .form-control:focus {
+.valuation-card .form-control:focus,
+.valuation-card .form-select:focus {
     border-color: #2c7a8b;
     box-shadow: 0 0 0 0.2rem rgba(44, 122, 139, 0.25);
 }
@@ -106,39 +120,469 @@ h6 {
     padding-left: 1.1rem;
 }
 
-.valuation-results-card .border {
-    border-color: rgba(230, 215, 184, 0.35) !important;
-    background: rgba(3, 56, 71, 0.42);
+/* ─── Stepper ─── */
+.vn-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 2rem;
+    position: relative;
 }
 
-.valuation-results-card table {
-    background: #f7fafc;
-    color: #1e293b;
+.vn-stepper__step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    cursor: pointer;
+    flex: 0 0 auto;
 }
 
-.valuation-results-card table thead th {
-    color: #0f172a;
+.vn-stepper__circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-weight: 700;
+    font-size: 1rem;
+    border: 2px solid rgba(230, 215, 184, 0.3);
+    background: rgba(6, 43, 54, 0.7);
+    color: rgba(230, 215, 184, 0.5);
+    transition: all var(--vn-transition);
 }
 
-.valuation-results-card table tbody td {
-    color: #1e293b;
+.vn-stepper__step.active .vn-stepper__circle {
+    background: var(--vn-gold);
+    color: var(--vn-deep-teal);
+    border-color: var(--vn-gold);
+    box-shadow: 0 0 20px rgba(230, 215, 184, 0.35);
 }
 
-
-.valuation-results-card table tbody th,
-.valuation-results-card table tbody td,
-.valuation-results-card table tbody td ul,
-.valuation-results-card table tbody td ul li {
-    color: #1e293b !important;
+.vn-stepper__step.completed .vn-stepper__circle {
+    background: var(--vn-gold);
+    color: var(--vn-deep-teal);
+    border-color: var(--vn-gold);
 }
 
-.valuation-results-card table tbody td ul {
-    padding-left: 1.1rem;
+.vn-stepper__label {
+    margin-top: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(230, 215, 184, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transition: color var(--vn-transition);
+    white-space: nowrap;
 }
 
+.vn-stepper__step.active .vn-stepper__label,
+.vn-stepper__step.completed .vn-stepper__label {
+    color: var(--vn-gold);
+}
 
-.valuation-results-card #ai-powered-banner {
+.vn-stepper__line {
+    flex: 1;
+    height: 2px;
+    background: rgba(230, 215, 184, 0.18);
+    margin: 0 0.5rem;
+    margin-bottom: 1.6rem;
+    transition: background var(--vn-transition);
+    min-width: 40px;
+}
+
+.vn-stepper__line.completed {
+    background: var(--vn-gold);
+}
+
+/* ─── Step panels ─── */
+.vn-step-panel {
+    display: none;
+    animation: vnFadeIn 0.4s ease;
+}
+
+.vn-step-panel.active {
+    display: block;
+}
+
+@keyframes vnFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Step navigation buttons ─── */
+.vn-step-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    gap: 1rem;
+}
+
+.vn-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    transition: all var(--vn-transition);
+}
+
+.vn-btn--primary {
+    background: var(--vn-gold);
+    color: var(--vn-deep-teal);
+}
+
+.vn-btn--primary:hover {
+    background: var(--vn-gold-bright);
+    box-shadow: 0 4px 16px rgba(230, 215, 184, 0.3);
+}
+
+.vn-btn--secondary {
+    background: rgba(230, 215, 184, 0.12);
+    color: var(--vn-gold);
+    border: 1px solid rgba(230, 215, 184, 0.25);
+}
+
+.vn-btn--secondary:hover {
+    background: rgba(230, 215, 184, 0.2);
+}
+
+.vn-btn--lg {
+    padding: 0.85rem 2.2rem;
+    font-size: 1.05rem;
+    border-radius: 12px;
+}
+
+.vn-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ─── Input with icon ─── */
+.vn-input-icon {
+    position: relative;
+}
+
+.vn-input-icon > .fa-solid,
+.vn-input-icon > .fa-regular {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #5f6f76;
+    font-size: 0.9rem;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.vn-input-icon > .form-control,
+.vn-input-icon > .form-select {
+    padding-left: 2.5rem;
+}
+
+/* ─── Summary mini card (step 3) ─── */
+.vn-summary-mini {
+    background: rgba(44, 122, 139, 0.12);
+    border: 1px solid rgba(44, 122, 139, 0.25);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+}
+
+.vn-summary-mini__row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    font-size: 0.88rem;
+}
+
+.vn-summary-mini__label {
+    color: rgba(242, 245, 247, 0.65);
+}
+
+.vn-summary-mini__value {
+    color: var(--vn-gold);
+    font-weight: 600;
+}
+
+/* ─── Help sidebar ─── */
+.vn-help-card {
+    border-radius: var(--vn-radius);
+    height: 100%;
+}
+
+.vn-help-card .vn-help-item {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.vn-help-card .vn-help-item i {
+    color: var(--vn-gold);
+    font-size: 1.1rem;
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+}
+
+.vn-help-card .vn-help-item span {
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+/* Mobile: help as collapsible banner */
+@media (max-width: 991.98px) {
+    .vn-help-sidebar {
+        order: -1;
+    }
+    .vn-help-card {
+        height: auto;
+    }
+}
+
+/* ─── Coordinates collapsible ─── */
+.vn-coords-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.88rem;
+    color: var(--vn-cyan);
+    cursor: pointer;
+    text-decoration: none;
+    transition: color var(--vn-transition);
+}
+
+.vn-coords-toggle:hover {
+    color: var(--vn-gold);
+}
+
+/* ═══════════════════════════════════════════════
+   RESULTS SECTION
+   ═══════════════════════════════════════════════ */
+
+/* ─── Result hero ─── */
+.vn-result-hero {
+    background:
+        radial-gradient(ellipse at 30% 0%, rgba(44, 122, 139, 0.25), transparent 60%),
+        rgba(6, 43, 54, 0.75);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--vn-glass-border);
+    border-radius: var(--vn-radius);
+    padding: 2.5rem 2rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.vn-result-hero__label {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(242, 245, 247, 0.6);
+    margin-bottom: 0.5rem;
+}
+
+.vn-result-hero__value {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--vn-gold);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 0.75rem;
+}
+
+.vn-result-hero__message {
+    font-size: 0.95rem;
+    color: rgba(242, 245, 247, 0.75);
+    margin-bottom: 1.5rem;
+}
+
+/* ─── Range bar ─── */
+.vn-range-bar {
+    position: relative;
+    height: 10px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0 auto 0.75rem;
+    max-width: 420px;
+    overflow: visible;
+}
+
+.vn-range-bar__fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(90deg, var(--vn-cyan), var(--vn-gold));
+    transition: width 1s ease;
+}
+
+.vn-range-bar__marker {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--vn-gold);
+    border: 3px solid var(--vn-deep-teal);
+    box-shadow: 0 0 10px rgba(230, 215, 184, 0.4);
+    transition: left 1s ease;
+}
+
+.vn-range-bar__labels {
+    display: flex;
+    justify-content: space-between;
+    max-width: 420px;
+    margin: 0.4rem auto 0;
+    font-size: 0.8rem;
+    color: rgba(242, 245, 247, 0.5);
+}
+
+/* ─── Confidence badge ─── */
+.vn-confidence-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.vn-confidence-badge--high {
+    background: rgba(34, 197, 94, 0.18);
+    color: var(--vn-green);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.vn-confidence-badge--medium {
+    background: rgba(234, 179, 8, 0.18);
+    color: var(--vn-yellow);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.vn-confidence-badge--low {
+    background: rgba(239, 68, 68, 0.18);
+    color: var(--vn-red);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ─── Metric cards (glassmorphism) ─── */
+.vn-metrics-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.vn-metric-card {
+    background: var(--vn-glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--vn-glass-border);
+    border-radius: 14px;
+    padding: 1.25rem;
+    text-align: center;
+    transition: transform var(--vn-transition), box-shadow var(--vn-transition);
+}
+
+.vn-metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+}
+
+.vn-metric-card__icon {
+    font-size: 1.6rem;
+    color: var(--vn-cyan);
+    margin-bottom: 0.5rem;
+}
+
+.vn-metric-card__label {
+    font-size: 0.78rem;
+    color: rgba(242, 245, 247, 0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.3rem;
+}
+
+.vn-metric-card__value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--vn-gold);
+    margin: 0;
+}
+
+@media (max-width: 991.98px) {
+    .vn-metrics-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .vn-metrics-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+    .vn-metric-card {
+        padding: 1rem 0.75rem;
+    }
+    .vn-metric-card__value {
+        font-size: 1.1rem;
+    }
+}
+
+/* ─── Residual breakdown cards ─── */
+.vn-residual-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.vn-residual-card {
+    background: rgba(44, 122, 139, 0.1);
+    border: 1px solid rgba(44, 122, 139, 0.22);
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.vn-residual-card__icon {
+    font-size: 1.3rem;
+    color: var(--vn-cyan);
+    margin-bottom: 0.4rem;
+}
+
+.vn-residual-card__label {
+    font-size: 0.75rem;
+    color: rgba(242, 245, 247, 0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.2rem;
+}
+
+.vn-residual-card__value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--vn-white);
+    margin: 0;
+}
+
+@media (max-width: 767.98px) {
+    .vn-residual-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ─── AI powered banner (updated) ─── */
+#ai-powered-banner {
     border: 1px solid rgba(230, 215, 184, 0.45);
     background: linear-gradient(135deg, #f3e9ca 0%, #efe1bb 100%);
     color: #2f2a1d;
@@ -146,33 +590,314 @@ h6 {
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
 }
 
-.valuation-results-card #ai-powered-banner strong,
-.valuation-results-card #ai-powered-banner span,
-.valuation-results-card #ai-powered-banner div {
+#ai-powered-banner strong,
+#ai-powered-banner span,
+#ai-powered-banner div {
     color: #2f2a1d !important;
 }
 
-.valuation-results-card #ai-powered-banner .badge {
+#ai-powered-banner .badge {
     background: #132a34 !important;
     color: #f8e7b6 !important;
     border: 1px solid rgba(248, 231, 182, 0.35);
     font-weight: 600;
 }
 
-
+/* ─── Dual result comparison ─── */
 .dual-result-card {
     background: rgba(2, 53, 67, 0.55);
-    border-color: rgba(230, 215, 184, 0.35) !important;
+    border: 1px solid rgba(230, 215, 184, 0.35);
+    border-radius: 12px;
+    padding: 1rem;
 }
 
 .dual-result-original {
-    border-left: 4px solid rgba(176, 190, 197, 0.85) !important;
+    border-left: 4px solid rgba(176, 190, 197, 0.85);
 }
 
 .dual-result-ai {
-    border-left: 4px solid rgba(230, 215, 184, 0.95) !important;
+    border-left: 4px solid rgba(230, 215, 184, 0.95);
 }
 
 #dual-results-comparison small {
     color: #dbe7ec !important;
+}
+
+/* ─── Accordion breakdown ─── */
+.vn-accordion .accordion-item {
+    background: var(--vn-glass-bg);
+    border: 1px solid var(--vn-glass-border);
+    border-radius: 12px !important;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+}
+
+.vn-accordion .accordion-button {
+    background: transparent;
+    color: var(--vn-gold);
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 1rem 1.25rem;
+    box-shadow: none;
+}
+
+.vn-accordion .accordion-button::after {
+    filter: invert(0.85) sepia(0.2) hue-rotate(10deg);
+}
+
+.vn-accordion .accordion-button:not(.collapsed) {
+    background: rgba(44, 122, 139, 0.1);
+    color: var(--vn-gold);
+}
+
+.vn-accordion .accordion-body {
+    color: #dbe7ec;
+    font-size: 0.92rem;
+    padding: 0.75rem 1.25rem 1.25rem;
+}
+
+.vn-accordion .accordion-body ul {
+    padding-left: 1.2rem;
+    margin-bottom: 0;
+}
+
+.vn-accordion .accordion-body li {
+    margin-bottom: 0.35rem;
+    color: #dbe7ec;
+}
+
+.vn-accordion .vn-breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid rgba(230, 215, 184, 0.08);
+}
+
+.vn-accordion .vn-breakdown-item:last-child {
+    border-bottom: none;
+}
+
+.vn-accordion .vn-breakdown-label {
+    color: rgba(219, 231, 236, 0.7);
+    font-size: 0.88rem;
+}
+
+.vn-accordion .vn-breakdown-value {
+    color: var(--vn-white);
+    font-weight: 600;
+    font-size: 0.88rem;
+}
+
+/* ─── Comparables table (desktop) ─── */
+.vn-comparables-table {
+    background: rgba(247, 250, 252, 0.97);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.vn-comparables-table thead th {
+    background: #0f2b35;
+    color: var(--vn-gold);
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.85rem 0.75rem;
+    border: none;
+}
+
+.vn-comparables-table tbody td {
+    color: #1e293b;
+    font-size: 0.9rem;
+    padding: 0.75rem;
+    vertical-align: middle;
+    border-color: #e2e8f0;
+}
+
+.vn-comparables-table tbody tr:hover {
+    background: rgba(44, 122, 139, 0.06);
+}
+
+/* ─── Comparable cards (mobile) ─── */
+.vn-comparable-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.vn-comparable-card {
+    background: var(--vn-glass-bg);
+    border: 1px solid var(--vn-glass-border);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.vn-comparable-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.vn-comparable-card__title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--vn-white);
+    flex: 1;
+    margin-right: 0.5rem;
+}
+
+.vn-comparable-card__price {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--vn-gold);
+    white-space: nowrap;
+}
+
+.vn-comparable-card__details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.vn-comparable-card__detail {
+    font-size: 0.82rem;
+}
+
+.vn-comparable-card__detail-label {
+    color: rgba(242, 245, 247, 0.5);
+}
+
+.vn-comparable-card__detail-value {
+    color: var(--vn-white);
+    font-weight: 600;
+}
+
+.vn-comparable-card__footer {
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--vn-glass-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+}
+
+.vn-comparable-card__location {
+    color: rgba(242, 245, 247, 0.6);
+}
+
+.vn-comparable-card__link a {
+    color: var(--vn-cyan);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* ─── Confidence progress bar ─── */
+.vn-confidence-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.vn-confidence-bar__fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1.2s ease;
+}
+
+.vn-confidence-bar__fill--high {
+    background: linear-gradient(90deg, var(--vn-green), #4ade80);
+}
+
+.vn-confidence-bar__fill--medium {
+    background: linear-gradient(90deg, var(--vn-yellow), #facc15);
+}
+
+.vn-confidence-bar__fill--low {
+    background: linear-gradient(90deg, var(--vn-red), #f87171);
+}
+
+/* ─── Confidence reasons ─── */
+.vn-confidence-reasons {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.vn-confidence-reasons li {
+    padding: 0.3rem 0;
+    padding-left: 1.2rem;
+    position: relative;
+    font-size: 0.88rem;
+    color: #dbe7ec;
+}
+
+.vn-confidence-reasons li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.7rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--vn-cyan);
+}
+
+/* ─── Form label enhancement ─── */
+.valuation-card .form-label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+}
+
+/* ─── Section headings ─── */
+.vn-section-heading {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--vn-gold);
+    margin-bottom: 1rem;
+}
+
+/* ─── Responsive stepper ─── */
+@media (max-width: 575.98px) {
+    .vn-stepper {
+        gap: 0;
+    }
+    .vn-stepper__circle {
+        width: 36px;
+        height: 36px;
+        font-size: 0.88rem;
+    }
+    .vn-stepper__label {
+        font-size: 0.68rem;
+    }
+    .vn-stepper__line {
+        min-width: 24px;
+    }
+    .vn-result-hero__value {
+        font-size: 2.2rem;
+    }
+    .vn-result-hero {
+        padding: 1.75rem 1.25rem;
+    }
+}
+
+/* ─── Responsive results section ─── */
+@media (max-width: 767.98px) {
+    .vn-result-hero__value {
+        font-size: 2.5rem;
+    }
+}
+
+/* ─── Scroll reveal helper ─── */
+.vn-reveal {
+    visibility: hidden;
+}
+
+/* ─── Form errors in step context ─── */
+#valuation-form-errors {
+    border-radius: 10px;
 }

@@ -17,19 +17,17 @@
 
     const $ageYears = $('#age_years');
     const $conservationLevel = $('#conservation_level');
-    const $advancedToggle = $('#advanced-fields-toggle');
-    const $advancedFields = $('#advanced-fields');
 
     const municipalityMap = new Map();
 
     const $resultsSection = $('#valuation-results-section');
     const $message = $('#valuation-result-message');
     const $estimatedValue = $('#result-estimated-value');
-    const $estimatedLow = $('#result-estimated-low');
-    const $estimatedHigh = $('#result-estimated-high');
     const $confidence = $('#result-confidence');
+    const $confidenceBadge = $('#result-confidence-badge');
     const $confidenceReasons = $('#result-confidence-reasons');
     const $comparablesBody = $('#comparables-table tbody');
+    const $comparablesCards = $('#comparables-cards');
     const $aiPoweredBanner = $('#ai-powered-banner');
     const $aiPoweredMessage = $('#ai-powered-message');
     const $dualResultsComparison = $('#dual-results-comparison');
@@ -56,11 +54,103 @@
     const $residualLand = $('#residual-land');
     const $residualLandUnit = $('#residual-land-unit');
 
+    // ─── Stepper state ───
+    let currentStep = 1;
+    const totalSteps = 3;
+
+    const stepRequiredFields = {
+        1: ['municipality', 'colony'],
+        2: ['area_construction_m2', 'age_years'],
+        3: [],
+    };
+
+    const goToStep = (targetStep) => {
+        if (targetStep < 1 || targetStep > totalSteps) return;
+
+        // Validate current step before advancing
+        if (targetStep > currentStep && !validateStep(currentStep)) {
+            return;
+        }
+
+        currentStep = targetStep;
+
+        // Update panels
+        $('.vn-step-panel').removeClass('active');
+        $(`#step-${currentStep}`).addClass('active');
+
+        // Update stepper indicator
+        $('.vn-stepper__step').each(function () {
+            const step = parseInt($(this).data('step'), 10);
+            $(this).removeClass('active completed');
+            if (step === currentStep) {
+                $(this).addClass('active');
+            } else if (step < currentStep) {
+                $(this).addClass('completed');
+                $(this).find('.vn-stepper__circle').html('<i class="fa-solid fa-check"></i>');
+            } else {
+                $(this).find('.vn-stepper__circle').text(step);
+            }
+        });
+
+        // Update lines
+        $('.vn-stepper__line').each(function (index) {
+            $(this).toggleClass('completed', index < currentStep - 1);
+        });
+
+        // Update summary on step 3
+        if (currentStep === 3) {
+            updateSummary();
+        }
+
+        // Scroll form into view
+        $('html, body').animate({ scrollTop: $('#valuation-form').offset().top - 80 }, 300);
+    };
+
+    const validateStep = (stepNum) => {
+        const fields = stepRequiredFields[stepNum] || [];
+        let valid = true;
+
+        fields.forEach((fieldName) => {
+            const $field = $(`[name="${fieldName}"]`);
+            const value = $field.val();
+            if (!value || value.trim() === '') {
+                valid = false;
+                $field.addClass('is-invalid');
+
+                // Remove existing feedback
+                $field.closest('.vn-input-icon, .col-md-6, .col-md-12, .col-12').find('.invalid-feedback').remove();
+
+                const feedback = $('<div class="invalid-feedback">Este campo es requerido.</div>');
+                if ($field.closest('.vn-input-icon').length) {
+                    $field.closest('.vn-input-icon').after(feedback);
+                } else {
+                    $field.after(feedback);
+                }
+            } else {
+                $field.removeClass('is-invalid');
+                $field.closest('.vn-input-icon, .col-md-6, .col-md-12, .col-12').find('.invalid-feedback').remove();
+            }
+        });
+
+        return valid;
+    };
+
+    const updateSummary = () => {
+        $('#summary-municipality').text($municipality.val() || '—');
+        $('#summary-colony').text($colony.val() || '—');
+        const area = $('#area_construction_m2').val();
+        $('#summary-area').text(area ? `${area} m²` : '— m²');
+        const age = $ageYears.val();
+        const cons = $conservationLevel.val();
+        const consText = cons ? $conservationLevel.find(`option[value="${cons}"]`).text() : 'Auto';
+        $('#summary-age').text(age ? `${age} años / ${consText}` : '—');
+    };
+
+    // ─── Formatters ───
     const formatCurrency = (amount) => {
         if (amount === null || amount === undefined || Number.isNaN(Number(amount))) {
             return 'N/D';
         }
-
         return new Intl.NumberFormat('es-MX', {
             style: 'currency',
             currency: 'MXN',
@@ -72,7 +162,6 @@
         if (value === null || value === undefined || Number.isNaN(Number(value))) {
             return 'N/D';
         }
-
         return new Intl.NumberFormat('es-MX', {
             maximumFractionDigits: digits,
         }).format(Number(value));
@@ -87,11 +176,11 @@
         $errors.addClass('d-none').empty();
     };
 
+    // ─── Datalist helpers ───
     const normalizeName = (item) => {
         if (typeof item === 'string') {
             return item;
         }
-
         return item.nombre || item.name || item.municipio || item.colonia || item.NOM_MUN || item.NOM_COL || item.label || '';
     };
 
@@ -107,7 +196,6 @@
         return $.getJSON(`${chartisBaseUrl}/getMunicipios`, { entidad: nlStateId })
             .done((response) => {
                 const items = Array.isArray(response) ? response : (response.data || []);
-
                 municipalityMap.clear();
                 items.forEach((item) => {
                     const name = normalizeName(item).trim();
@@ -116,7 +204,6 @@
                         municipalityMap.set(name.toLowerCase(), String(id));
                     }
                 });
-
                 renderDatalist($municipalityOptions, items.map(normalizeName));
             })
             .fail(() => {
@@ -129,18 +216,15 @@
         if (normalized === '') {
             return '';
         }
-
         return municipalityMap.get(normalized) || municipalityInput.trim();
     };
 
     const loadColonies = (municipalityInput) => {
         $colonyOptions.empty();
-
         const municipalityParam = resolveMunicipalityParam(municipalityInput);
         if (!municipalityParam) {
             return;
         }
-
         $.getJSON(`${chartisBaseUrl}/getColonias`, {
             entidad: nlStateId,
             municipio: municipalityParam,
@@ -157,23 +241,31 @@
         if (Number.isNaN(ageNum) || ageNum < 0) {
             return '';
         }
-
         const thresholds = Object.keys(conservationInference)
             .map(Number)
             .sort((a, b) => a - b);
-
         for (const threshold of thresholds) {
             if (ageNum <= threshold) {
                 return String(conservationInference[String(threshold)]);
             }
         }
-
         return '4';
     };
 
+    // ─── Confidence helpers ───
+    const getConfidenceLevel = (score) => {
+        const num = Number(score);
+        if (num >= 70) return 'high';
+        if (num >= 40) return 'medium';
+        return 'low';
+    };
+
+    // ─── Render comparables ───
     const renderComparables = (comparables) => {
+        // Desktop table
         if (!Array.isArray(comparables) || comparables.length === 0) {
             $comparablesBody.html('<tr><td colspan="8" class="text-center">No hay comparables disponibles.</td></tr>');
+            $comparablesCards.html('<p style="color:rgba(242,245,247,0.6); text-align:center;">No hay comparables disponibles.</p>');
             return;
         }
 
@@ -181,7 +273,6 @@
             const sourceLink = item.url
                 ? `<a href="${item.url}" target="_blank" rel="noopener">Ver anuncio</a>`
                 : 'N/D';
-
             const fre = item.homologation_factors ? formatNumber(item.homologation_factors.fre, 4) : 'N/D';
             const ppuHomol = item.ppu_homologado ? formatCurrency(item.ppu_homologado) : 'N/D';
 
@@ -198,8 +289,48 @@
                 </tr>
             `;
         }).join('');
-
         $comparablesBody.html(rows);
+
+        // Mobile cards
+        const cards = comparables.map((item) => {
+            const sourceLink = item.url
+                ? `<a href="${item.url}" target="_blank" rel="noopener">Ver anuncio</a>`
+                : '';
+            const fre = item.homologation_factors ? formatNumber(item.homologation_factors.fre, 4) : 'N/D';
+            const ppuHomol = item.ppu_homologado ? formatCurrency(item.ppu_homologado) : 'N/D';
+
+            return `
+                <div class="vn-comparable-card">
+                    <div class="vn-comparable-card__header">
+                        <div class="vn-comparable-card__title">${item.title || 'Comparable'}</div>
+                        <div class="vn-comparable-card__price">${formatCurrency(item.price_amount)}</div>
+                    </div>
+                    <div class="vn-comparable-card__details">
+                        <div class="vn-comparable-card__detail">
+                            <span class="vn-comparable-card__detail-label">m²</span><br>
+                            <span class="vn-comparable-card__detail-value">${formatNumber(item.area_construction_m2, 2)}</span>
+                        </div>
+                        <div class="vn-comparable-card__detail">
+                            <span class="vn-comparable-card__detail-label">$/m²</span><br>
+                            <span class="vn-comparable-card__detail-value">${formatCurrency(item.ppu_m2)}</span>
+                        </div>
+                        <div class="vn-comparable-card__detail">
+                            <span class="vn-comparable-card__detail-label">$/m² Homol.</span><br>
+                            <span class="vn-comparable-card__detail-value">${ppuHomol}</span>
+                        </div>
+                        <div class="vn-comparable-card__detail">
+                            <span class="vn-comparable-card__detail-label">FRe</span><br>
+                            <span class="vn-comparable-card__detail-value">${fre}</span>
+                        </div>
+                    </div>
+                    <div class="vn-comparable-card__footer">
+                        <span class="vn-comparable-card__location">${item.colony || '—'}, ${item.municipality || '—'}</span>
+                        <span class="vn-comparable-card__link">${sourceLink}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        $comparablesCards.html(cards);
     };
 
     const renderResidualBreakdown = (response) => {
@@ -208,7 +339,6 @@
             $residualSection.hide();
             return;
         }
-
         $residualConstruction.text(formatCurrency(residual.construction_value));
         $residualEquipment.text(formatCurrency(residual.equipment_value));
         $residualLand.text(formatCurrency(residual.land_value));
@@ -262,6 +392,7 @@
         $calcMethod.text(methodLabel);
         $calcScope.text(scopeLabelMap[breakdown.scope_used] || breakdown.scope_used || response.location_scope || 'N/D');
         $calcCounts.text(`${breakdown.comparables_raw ?? 'N/D'} / ${breakdown.comparables_useful ?? 'N/D'}`);
+
         const aiStatusLabelMap = {
             success: 'Consulta IA exitosa',
             disabled: 'IA deshabilitada en .env',
@@ -313,35 +444,92 @@
         $resultsSection.show();
         $message.text(response.message || 'Resultado generado.');
 
-        $estimatedValue.text(formatCurrency(response.estimated_value));
-        $estimatedLow.text(formatCurrency(response.estimated_low));
-        $estimatedHigh.text(formatCurrency(response.estimated_high));
-        $confidence.text(`${formatNumber(response.confidence_score)} / 100`);
+        const estimatedValue = Number(response.estimated_value) || 0;
+        const estimatedLow = Number(response.estimated_low) || 0;
+        const estimatedHigh = Number(response.estimated_high) || 0;
+        const confidenceScore = Number(response.confidence_score) || 0;
 
+        // Hero value with odometer
+        const heroEl = $estimatedValue[0];
+        if (heroEl && typeof Odometer !== 'undefined') {
+            const od = new Odometer({
+                el: heroEl,
+                value: 0,
+                format: '(,ddd)',
+                theme: 'default',
+            });
+            od.update(estimatedValue);
+            // Add currency prefix
+            setTimeout(() => {
+                const currentText = $estimatedValue.text();
+                if (!currentText.startsWith('$')) {
+                    $estimatedValue.text(formatCurrency(estimatedValue));
+                }
+            }, 1500);
+        } else {
+            $estimatedValue.text(formatCurrency(estimatedValue));
+        }
+
+        // Range bar
+        const rangeLow = estimatedLow;
+        const rangeHigh = estimatedHigh;
+        $('#range-label-low').text(formatCurrency(rangeLow));
+        $('#range-label-high').text(formatCurrency(rangeHigh));
+
+        // Confidence badge
+        const level = getConfidenceLevel(confidenceScore);
+        $confidenceBadge.removeClass('vn-confidence-badge--high vn-confidence-badge--medium vn-confidence-badge--low')
+            .addClass(`vn-confidence-badge--${level}`);
+        $confidence.text(`${formatNumber(confidenceScore)} / 100`);
+
+        // Metric cards
+        $('#metric-estimated').text(formatCurrency(estimatedValue));
+        $('#metric-low').text(formatCurrency(estimatedLow));
+        $('#metric-high').text(formatCurrency(estimatedHigh));
+        $('#metric-confidence').text(`${formatNumber(confidenceScore)}%`);
+
+        // Confidence bar
+        const $confBarFill = $('#confidence-bar-fill');
+        $confBarFill.removeClass('vn-confidence-bar__fill--high vn-confidence-bar__fill--medium vn-confidence-bar__fill--low')
+            .addClass(`vn-confidence-bar__fill--${level}`);
+        setTimeout(() => {
+            $confBarFill.css('width', `${confidenceScore}%`);
+        }, 200);
+
+        // Confidence reasons
         const reasons = Array.isArray(response.confidence_reasons)
             ? response.confidence_reasons.map((reason) => `<li>${reason}</li>`).join('')
             : '<li>Sin explicación disponible.</li>';
-
         $confidenceReasons.html(reasons);
+
         renderComparables(response.comparables || []);
         renderBreakdown(response);
         renderResidualBreakdown(response);
 
+        // Re-init WOW for dynamic elements
+        if (typeof WOW !== 'undefined') {
+            new WOW({ live: false }).init();
+        }
+
         $('html, body').animate({ scrollTop: $resultsSection.offset().top - 80 }, 400);
     };
 
+    // ─── Validation setup ───
     const setupValidation = () => {
         if (!$.fn.validate) {
             return;
         }
-
         $form.validate({
             errorClass: 'is-invalid',
             validClass: 'is-valid',
             errorElement: 'div',
             errorPlacement(error, element) {
                 error.addClass('invalid-feedback');
-                error.insertAfter(element);
+                if (element.closest('.vn-input-icon').length) {
+                    error.insertAfter(element.closest('.vn-input-icon'));
+                } else {
+                    error.insertAfter(element);
+                }
             },
             highlight(element) {
                 $(element).addClass('is-invalid').removeClass('is-valid');
@@ -380,24 +568,16 @@
         });
     };
 
+    // ─── Init ───
     setupValidation();
     loadMunicipalities();
 
+    // ─── Event: municipality change ───
     $municipality.on('change blur', function () {
         loadColonies($(this).val().trim());
     });
 
-
-    $advancedToggle.on('click', function (event) {
-        event.preventDefault();
-
-        const isExpanded = $(this).attr('aria-expanded') === 'true';
-        const nextExpanded = !isExpanded;
-
-        $(this).attr('aria-expanded', String(nextExpanded));
-        $advancedFields.toggleClass('show', nextExpanded);
-    });
-
+    // ─── Event: age -> conservation inference ───
     $ageYears.on('change blur', function () {
         const age = $(this).val();
         if ($conservationLevel.val() === '') {
@@ -408,6 +588,32 @@
         }
     });
 
+    // ─── Event: stepper navigation ───
+    $(document).on('click', '[data-step-next]', function () {
+        const target = parseInt($(this).data('step-next'), 10);
+        goToStep(target);
+    });
+
+    $(document).on('click', '[data-step-prev]', function () {
+        const target = parseInt($(this).data('step-prev'), 10);
+        goToStep(target);
+    });
+
+    // Click on stepper circles to navigate (only to completed or current steps)
+    $(document).on('click', '.vn-stepper__step', function () {
+        const target = parseInt($(this).data('step'), 10);
+        if (target < currentStep) {
+            goToStep(target);
+        }
+    });
+
+    // Clear validation on input
+    $(document).on('input change', '.is-invalid', function () {
+        $(this).removeClass('is-invalid');
+        $(this).closest('.vn-input-icon, .col-md-6, .col-md-12, .col-12').find('.invalid-feedback').remove();
+    });
+
+    // ─── Event: form submit ───
     $form.on('submit', function (event) {
         event.preventDefault();
         clearErrors();
@@ -416,7 +622,8 @@
             return;
         }
 
-        $submit.prop('disabled', true).addClass('disabled');
+        $submit.prop('disabled', true);
+        $submit.html('<i class="fa-solid fa-spinner fa-spin"></i> Calculando...');
 
         $.ajax({
             url: config.estimateUrl,
@@ -427,7 +634,6 @@
             if (!response.ok) {
                 showErrors({ general: response.message || 'No fue posible calcular la valuación.' });
             }
-
             renderResult(response);
         }).fail(function (xhr) {
             const response = xhr.responseJSON || {};
@@ -437,7 +643,8 @@
                 showErrors({ general: response.message || 'Error inesperado al estimar valuación.' });
             }
         }).always(function () {
-            $submit.prop('disabled', false).removeClass('disabled');
+            $submit.prop('disabled', false);
+            $submit.html('<i class="fa-solid fa-calculator"></i> Calcular valuación');
         });
     });
 })(jQuery);
