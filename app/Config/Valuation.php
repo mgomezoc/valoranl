@@ -7,21 +7,23 @@ use CodeIgniter\Config\BaseConfig;
 class Valuation extends BaseConfig
 {
     /**
-     * Multiplicadores Ross-Heidecke simplificados por nivel de conservación (1 a 9).
-     * 9 = excelente, 1 = muy malo.
+     * Multiplicadores Ross-Heidecke por nivel de conservación (1 a 10).
+     * Escala alineada al Excel de referencia.
+     * 10 = nuevo, 1 = ruina.
      *
      * @var array<int, float>
      */
     public array $conservationMultipliers = [
-        1 => 0.4500,
-        2 => 0.5300,
-        3 => 0.6100,
-        4 => 0.6900,
-        5 => 0.7400,
-        6 => 0.7700,
-        7 => 0.7871,
-        8 => 0.9191,
-        9 => 1.0000,
+        1  => 0.0000,
+        2  => 0.1350,
+        3  => 0.2480,
+        4  => 0.4740,
+        5  => 0.6680,
+        6  => 0.8190,
+        7  => 0.9191,
+        8  => 0.9748,
+        9  => 0.9968,
+        10 => 1.0000,
     ];
 
     /**
@@ -30,17 +32,36 @@ class Valuation extends BaseConfig
      * @var array<int, int>
      */
     public array $conservationInferenceByAge = [
-        4 => 9,
-        8 => 8,
+        0  => 10,
+        4  => 9,
+        8  => 8,
         15 => 7,
         25 => 6,
         35 => 5,
         50 => 4,
     ];
 
-    public float $depreciationImpact = 0.25;
+    /**
+     * Exponente para la fórmula Ross-Heidecke: (1 - (edad/vida)^exp) × conservación.
+     */
+    public float $rossHeideckeExponent = 1.4;
 
     public int $usefulLifeYears = 60;
 
     public float $negotiationFactor = 0.95;
+
+    /**
+     * Factor de ubicación por comparable (ajuste posición dentro de zona).
+     */
+    public float $locationFactor = 0.95;
+
+    /**
+     * Factor de zona por comparable (ajuste zona/ubicación relativa).
+     */
+    public float $zoneFactor = 1.0;
+
+    /**
+     * Spread para rangos: valor ± rangeSpread (10% = Excel).
+     */
+    public float $rangeSpread = 0.10;
 }

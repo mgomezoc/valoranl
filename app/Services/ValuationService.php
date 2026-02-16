@@ -23,13 +23,15 @@ class ValuationService
     public function estimate(array $input): array
     {
         $subject = $this->normalizeInput($input);
-        $rossHeideckeFactor = $this->valuationMath->rossHeideckeFactor(
-            ageYears: $subject['age_years'] ?? 0,
-            conservationLevel: $subject['conservation_level'] ?? 9,
+
+        $subjectDepr = $this->valuationMath->depreciation(
+            ageYears: $subject['age_years'],
+            conservationLevel: $subject['conservation_level'],
         );
-        $negotiationFactor = $this->valuationMath->negotiationFactor();
-        $equipmentFactor = $subject['equipment_factor'] ?? 1.0;
-        $adjustmentFactor = round($rossHeideckeFactor * $negotiationFactor * $equipmentFactor, 4);
+        $rossHeideckeFactor = $this->valuationMath->rossHeideckeFactor(
+            ageYears: $subject['age_years'],
+            conservationLevel: $subject['conservation_level'],
+        );
 
         $areaMin = $subject['area_construction_m2'] * 0.7;
         $areaMax = $subject['area_construction_m2'] * 1.3;
@@ -61,40 +63,41 @@ class ValuationService
             return $this->buildSyntheticEstimate($subject);
         }
 
-        $ppus = array_column($prepared, 'ppu_m2');
-        $scores = array_column($prepared, 'similarity_score');
+        // Compute per-comparable homologation factors
+        $homologated = $this->homologateComparables($prepared, $subject, $subjectDepr);
 
-        $ppuBase = $this->weightedMedian($ppus, $scores);
-        $ppuAdjusted = $this->applySizeAdjustment($ppuBase, $subject['area_construction_m2'], $prepared);
+        $ppusHomologados = array_column($homologated, 'ppu_homologado');
+        $ppuPromedio = array_sum($ppusHomologados) / count($ppusHomologados);
+        $ppuAplicado = $this->valuationMath->roundPpu($ppuPromedio);
 
-        $estimatedValue = ($ppuAdjusted * $subject['area_construction_m2']) * $adjustmentFactor;
-        $ppuP25 = $this->percentile($ppus, 0.25);
-        $ppuP75 = $this->percentile($ppus, 0.75);
-        $estimatedLow = ($ppuP25 * $subject['area_construction_m2']) * $adjustmentFactor;
-        $estimatedHigh = ($ppuP75 * $subject['area_construction_m2']) * $adjustmentFactor;
+        $rangeSpread = (new \Config\Valuation())->rangeSpread;
 
-        $confidence = $this->buildConfidence($prepared, $locationScope);
+        $estimatedValue = $this->valuationMath->roundValueToThousands($ppuAplicado * $subject['area_construction_m2']);
+        $estimatedLow = $this->valuationMath->roundValueToThousands($ppuAplicado * (1 - $rangeSpread) * $subject['area_construction_m2']);
+        $estimatedHigh = $this->valuationMath->roundValueToThousands($ppuAplicado * (1 + $rangeSpread) * $subject['area_construction_m2']);
 
-        usort($prepared, static fn(array $a, array $b): int => $b['similarity_score'] <=> $a['similarity_score']);
-        $topComparables = array_slice($prepared, 0, 10);
+        $confidence = $this->buildConfidence($prepared, $locationScope, $subject);
 
-        return [
+        usort($homologated, static fn(array $a, array $b): int => $b['similarity_score'] <=> $a['similarity_score']);
+        $topComparables = array_slice($homologated, 0, 10);
+
+        $result = [
             'ok' => true,
             'message' => $locationScope === 'estado'
                 ? 'Valuación estimada con referencia estatal por baja disponibilidad local de comparables.'
                 : 'Valuación estimada calculada correctamente.',
             'subject' => $subject,
-            'estimated_value' => round($estimatedValue, 2),
-            'estimated_low' => round($estimatedLow, 2),
-            'estimated_high' => round($estimatedHigh, 2),
-            'ppu_base' => round($ppuAdjusted, 2),
+            'estimated_value' => $estimatedValue,
+            'estimated_low' => $estimatedLow,
+            'estimated_high' => $estimatedHigh,
+            'ppu_base' => $ppuAplicado,
             'comparables_count' => count($prepared),
             'comparables' => $topComparables,
             'confidence_score' => $confidence['score'],
             'confidence_reasons' => $confidence['reasons'],
             'location_scope' => $locationScope,
             'calc_breakdown' => [
-                'method' => 'comparables_v1',
+                'method' => 'comparables_v2_excel',
                 'filters' => [
                     'status' => 'active',
                     'price_type' => 'sale',
@@ -110,60 +113,56 @@ class ValuationService
                 'comparables_raw' => $comparablesRawCount,
                 'comparables_useful' => $comparablesUsefulCount,
                 'ppu_stats' => [
-                    'weighted_median' => round($ppuBase, 2),
-                    'adjusted_ppu' => round($ppuAdjusted, 2),
-                    'p25' => round($ppuP25, 2),
-                    'p75' => round($ppuP75, 2),
+                    'ppu_promedio' => round($ppuPromedio, 2),
+                    'ppu_aplicado' => $ppuAplicado,
                 ],
                 'valuation_factors' => [
                     'ross_heidecke' => $rossHeideckeFactor,
-                    'negotiation' => $negotiationFactor,
-                    'equipment' => $equipmentFactor,
-                    'combined_adjustment_factor' => $adjustmentFactor,
+                    'depreciation_subject' => $subjectDepr,
+                    'negotiation' => $this->valuationMath->negotiationFactor(),
+                    'location' => $this->valuationMath->locationFactor(),
+                    'zone' => $this->valuationMath->zoneFactor(),
                 ],
                 'formula' => [
-                    'estimated_value' => '(adjusted_ppu * subject_area_m2) * adjustment_factor',
-                    'estimated_low' => '(p25_ppu * subject_area_m2) * adjustment_factor',
-                    'estimated_high' => '(p75_ppu * subject_area_m2) * adjustment_factor',
+                    'ppu_homologado' => 'PPU_bruto × Zona × Ubicación × Superficie × Edad × Equipamiento × Negociación',
+                    'ppu_aplicado' => 'ROUND(AVERAGE(PPUs_homologados), -1)',
+                    'estimated_value' => 'ROUNDUP(PPU_aplicado × m²_construcción, -3)',
+                    'estimated_low' => 'ROUNDUP(PPU_aplicado × 0.9 × m²_construcción, -3)',
+                    'estimated_high' => 'ROUNDUP(PPU_aplicado × 1.1 × m²_construcción, -3)',
                 ],
                 'human_steps' => [
                     'Buscamos propiedades parecidas en tu zona y, si no alcanza, ampliamos el alcance.',
-                    'Tomamos el precio por m² más representativo del conjunto de comparables.',
-                    'Ajustamos ese valor según el tamaño de tu casa para no sobreestimar.',
-                    'Calculamos un rango bajo y alto para darte una referencia realista.',
+                    'Calculamos factores de homologación por cada comparable (zona, ubicación, superficie, edad, equipamiento, negociación).',
+                    'Promediamos los precios por m² homologados y redondeamos.',
+                    'Calculamos valor final y rangos ±10%.',
                 ],
-                'advisor_detail_steps' => [
-                    sprintf(
-                        '1) Se depuraron comparables activos y se conservaron %d propiedades útiles de %d encontradas en el alcance %s.',
-                        $comparablesUsefulCount,
-                        $comparablesRawCount,
-                        $locationScope,
-                    ),
-                    sprintf(
-                        '2) El precio unitario base se obtuvo con mediana ponderada de similitud: $%s/m².',
-                        number_format($ppuBase, 2),
-                    ),
-                    sprintf(
-                        '3) Se aplicó ajuste por escala al precio unitario para el inmueble objetivo: $%s/m².',
-                        number_format($ppuAdjusted, 2),
-                    ),
-                    sprintf(
-                        '4) Factores de homologación aplicados: Ross-Heidecke %.4f × Negociación %.4f × Equipamiento %.4f = %.4f.',
-                        $rossHeideckeFactor,
-                        $negotiationFactor,
-                        $equipmentFactor,
-                        $adjustmentFactor,
-                    ),
-                    sprintf(
-                        '5) Valor final = (PPU ajustado × m² construidos) × factor homologado = ($%s × %s) × %.4f = $%s MXN.',
-                        number_format($ppuAdjusted, 2),
-                        number_format((float) $subject['area_construction_m2'], 2),
-                        $adjustmentFactor,
-                        number_format($estimatedValue, 2),
-                    ),
-                ],
+                'advisor_detail_steps' => $this->buildAdvisorSteps(
+                    $comparablesUsefulCount,
+                    $comparablesRawCount,
+                    $locationScope,
+                    $ppuPromedio,
+                    $ppuAplicado,
+                    $subject,
+                    $estimatedValue,
+                    $rossHeideckeFactor,
+                    $subjectDepr,
+                ),
             ],
         ];
+
+        // Residual breakdown if construction_unit_value provided
+        if ($subject['construction_unit_value'] !== null) {
+            $result['residual_breakdown'] = $this->valuationMath->residualBreakdown(
+                marketValue: $estimatedValue,
+                constructionUnitValue: $subject['construction_unit_value'],
+                areaConstructionM2: $subject['area_construction_m2'],
+                depreciationFactor: $subjectDepr,
+                equipmentValue: $subject['equipment_value'] ?? 0.0,
+                areaLandM2: $subject['area_land_m2'] ?? 0.0,
+            );
+        }
+
+        return $result;
     }
 
     /**
@@ -171,6 +170,12 @@ class ValuationService
      */
     private function normalizeInput(array $input): array
     {
+        $ageYears = isset($input['age_years']) && $input['age_years'] !== '' ? max(0, (int) $input['age_years']) : 0;
+
+        $conservationLevel = isset($input['conservation_level']) && $input['conservation_level'] !== ''
+            ? max(1, min(10, (int) $input['conservation_level']))
+            : $this->valuationMath->inferConservationLevel($ageYears);
+
         return [
             'property_type' => trim((string) ($input['property_type'] ?? '')),
             'municipality' => trim((string) ($input['municipality'] ?? '')),
@@ -183,15 +188,18 @@ class ValuationService
             'parking' => isset($input['parking']) && $input['parking'] !== '' ? max(0, (int) $input['parking']) : null,
             'lat' => isset($input['lat']) && $input['lat'] !== '' ? (float) $input['lat'] : null,
             'lng' => isset($input['lng']) && $input['lng'] !== '' ? (float) $input['lng'] : null,
-            'age_years' => isset($input['age_years']) && $input['age_years'] !== '' ? max(0, (int) $input['age_years']) : 0,
-            'conservation_level' => isset($input['conservation_level']) && $input['conservation_level'] !== ''
-                ? max(1, min(9, (int) $input['conservation_level']))
-                : $this->valuationMath->inferConservationLevel(isset($input['age_years']) ? (int) $input['age_years'] : 0),
-            'equipment_factor' => isset($input['equipment_factor']) && $input['equipment_factor'] !== ''
-                ? max(0.7, min(1.3, (float) $input['equipment_factor']))
-                : 1.0,
+            'age_years' => $ageYears,
+            'conservation_level' => $conservationLevel,
+            'construction_unit_value' => isset($input['construction_unit_value']) && $input['construction_unit_value'] !== ''
+                ? max(0.0, (float) $input['construction_unit_value'])
+                : null,
+            'equipment_value' => isset($input['equipment_value']) && $input['equipment_value'] !== ''
+                ? max(0.0, (float) $input['equipment_value'])
+                : null,
         ];
     }
+
+    private const COMPARABLE_SELECT = 'id, url, title, property_type, municipality, colony, area_construction_m2, area_land_m2, age_years, bedrooms, bathrooms, parking, lat, lng, price_amount, currency';
 
     /**
      * @param array<string, mixed> $subject
@@ -200,7 +208,7 @@ class ValuationService
     private function getComparables(array $subject, float $areaMin, float $areaMax, bool $useColony): array
     {
         $builder = $this->listingModel->builder();
-        $builder->select('id, url, title, property_type, municipality, colony, area_construction_m2, bedrooms, bathrooms, parking, lat, lng, price_amount, currency')
+        $builder->select(self::COMPARABLE_SELECT)
             ->where('status', 'active')
             ->where('price_type', 'sale')
             ->where('property_type', $subject['property_type'])
@@ -228,7 +236,7 @@ class ValuationService
     {
         $builder = $this->listingModel->builder();
 
-        return $builder->select('id, url, title, property_type, municipality, colony, area_construction_m2, bedrooms, bathrooms, parking, lat, lng, price_amount, currency')
+        return $builder->select(self::COMPARABLE_SELECT)
             ->where('status', 'active')
             ->where('price_type', 'sale')
             ->where('municipality', $subject['municipality'])
@@ -248,7 +256,7 @@ class ValuationService
     {
         $builder = $this->listingModel->builder();
 
-        return $builder->select('id, url, title, property_type, municipality, colony, area_construction_m2, bedrooms, bathrooms, parking, lat, lng, price_amount, currency')
+        return $builder->select(self::COMPARABLE_SELECT)
             ->where('status', 'active')
             ->where('price_type', 'sale')
             ->where('property_type', $subject['property_type'])
@@ -295,6 +303,8 @@ class ValuationService
                 'currency' => (string) ($row['currency'] ?? 'MXN'),
                 'price_amount' => $price,
                 'area_construction_m2' => $area,
+                'area_land_m2' => isset($row['area_land_m2']) && $row['area_land_m2'] !== null ? (float) $row['area_land_m2'] : null,
+                'age_years' => isset($row['age_years']) && $row['age_years'] !== null ? (int) $row['age_years'] : null,
                 'bedrooms' => $row['bedrooms'] !== null ? (int) $row['bedrooms'] : null,
                 'bathrooms' => $row['bathrooms'] !== null ? (float) $row['bathrooms'] : null,
                 'parking' => $row['parking'] !== null ? (int) $row['parking'] : null,
@@ -306,6 +316,66 @@ class ValuationService
         }
 
         return array_values($this->removeOutliersByIqr($comparables));
+    }
+
+    /**
+     * Compute per-comparable homologation factors and homologated PPU.
+     *
+     * @param array<int, array<string, mixed>> $comparables
+     * @param array<string, mixed> $subject
+     * @return array<int, array<string, mixed>>
+     */
+    private function homologateComparables(array $comparables, array $subject, float $subjectDepr): array
+    {
+        $zoneFactor = $this->valuationMath->zoneFactor();
+        $locationFactor = $this->valuationMath->locationFactor();
+        $negotiationFactor = $this->valuationMath->negotiationFactor();
+        $equipmentFactor = 1.0;
+
+        $result = [];
+
+        foreach ($comparables as $comp) {
+            $ppuBruto = $comp['ppu_m2'];
+
+            // Surface factor
+            $surfaceFactor = 1.0;
+            $compLand = $comp['area_land_m2'];
+            $subjLand = $subject['area_land_m2'];
+            if ($compLand !== null && $compLand > 0 && $subjLand !== null && $subjLand > 0) {
+                $surfaceFactor = $this->valuationMath->surfaceHomologationFactor(
+                    $comp['area_construction_m2'],
+                    $compLand,
+                    $subject['area_construction_m2'],
+                    $subjLand,
+                );
+            }
+
+            // Age factor
+            $ageFactor = 1.0;
+            if ($comp['age_years'] !== null) {
+                $compConservation = $this->valuationMath->inferConservationLevel($comp['age_years']);
+                $compDepr = $this->valuationMath->depreciation($comp['age_years'], $compConservation);
+                $ageFactor = $this->valuationMath->ageHomologationFactor($subjectDepr, $compDepr);
+            }
+
+            $fre = $zoneFactor * $locationFactor * $surfaceFactor * $ageFactor * $equipmentFactor * $negotiationFactor;
+            $ppuHomologado = $ppuBruto * $fre;
+
+            $comp['homologation_factors'] = [
+                'zone' => round($zoneFactor, 4),
+                'location' => round($locationFactor, 4),
+                'surface' => round($surfaceFactor, 4),
+                'age' => round($ageFactor, 4),
+                'equipment' => round($equipmentFactor, 4),
+                'negotiation' => round($negotiationFactor, 4),
+                'fre' => round($fre, 4),
+            ];
+            $comp['ppu_homologado'] = round($ppuHomologado, 2);
+
+            $result[] = $comp;
+        }
+
+        return $result;
     }
 
     /**
@@ -419,66 +489,11 @@ class ValuationService
     }
 
     /**
-     * @param array<int, float> $values
-     * @param array<int, float> $weights
-     */
-    private function weightedMedian(array $values, array $weights): float
-    {
-        if ($values === []) {
-            return 0.0;
-        }
-
-        $pairs = [];
-        $totalWeight = 0.0;
-
-        foreach ($values as $index => $value) {
-            $weight = max(0.01, (float) ($weights[$index] ?? 0.01));
-            $pairs[] = ['value' => (float) $value, 'weight' => $weight];
-            $totalWeight += $weight;
-        }
-
-        usort($pairs, static fn(array $a, array $b): int => $a['value'] <=> $b['value']);
-
-        $accumulated = 0.0;
-        $half = $totalWeight / 2;
-
-        foreach ($pairs as $pair) {
-            $accumulated += $pair['weight'];
-            if ($accumulated >= $half) {
-                return (float) $pair['value'];
-            }
-        }
-
-        return (float) end($pairs)['value'];
-    }
-
-    /**
      * @param array<int, array<string, mixed>> $comparables
-     */
-    private function applySizeAdjustment(float $ppuBase, float $subjectArea, array $comparables): float
-    {
-        if ($ppuBase <= 0 || $subjectArea <= 0 || $comparables === []) {
-            return $ppuBase;
-        }
-
-        $areas = array_map(static fn(array $item): float => (float) $item['area_construction_m2'], $comparables);
-        $medianComparableArea = $this->percentile($areas, 0.5);
-
-        if ($medianComparableArea <= 0 || $subjectArea <= $medianComparableArea) {
-            return $ppuBase;
-        }
-
-        $k = 0.05;
-        $factor = 1 - ($k * (($subjectArea / $medianComparableArea) - 1));
-
-        return $ppuBase * max(0.90, $factor);
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $comparables
+     * @param array<string, mixed> $subject
      * @return array{score: int, reasons: array<int, string>}
      */
-    private function buildConfidence(array $comparables, string $locationScope): array
+    private function buildConfidence(array $comparables, string $locationScope, array $subject): array
     {
         $n = count($comparables);
         $baseN = min(1.0, $n / 20);
@@ -510,6 +525,13 @@ class ValuationService
             },
         ];
 
+        if ($subject['age_years'] === 0 && !isset($subject['_age_provided'])) {
+            $reasons[] = 'Edad del inmueble no proporcionada (default 0); el resultado puede variar.';
+        }
+        if ($subject['area_land_m2'] === null) {
+            $reasons[] = 'Sin m² de terreno; factor de superficie no aplicado.';
+        }
+
         return ['score' => $score, 'reasons' => $reasons];
     }
 
@@ -520,22 +542,23 @@ class ValuationService
     private function buildSyntheticEstimate(array $subject): array
     {
         $rossHeideckeFactor = $this->valuationMath->rossHeideckeFactor(
-            ageYears: $subject['age_years'] ?? 0,
-            conservationLevel: $subject['conservation_level'] ?? 9,
+            ageYears: $subject['age_years'],
+            conservationLevel: $subject['conservation_level'],
         );
         $negotiationFactor = $this->valuationMath->negotiationFactor();
-        $equipmentFactor = $subject['equipment_factor'] ?? 1.0;
-        $adjustmentFactor = round($rossHeideckeFactor * $negotiationFactor * $equipmentFactor, 4);
+        $adjustmentFactor = round($rossHeideckeFactor * $negotiationFactor, 4);
 
-        $estimatedValue = (self::FALLBACK_BASE_PPU * $subject['area_construction_m2']) * $adjustmentFactor;
+        $rawValue = self::FALLBACK_BASE_PPU * $subject['area_construction_m2'] * $adjustmentFactor;
+        $estimatedValue = $this->valuationMath->roundValueToThousands($rawValue);
+        $rangeSpread = (new \Config\Valuation())->rangeSpread;
 
         return [
             'ok' => true,
             'message' => 'Valuación estimada con referencia base por falta de comparables publicados en la zona.',
             'subject' => $subject,
-            'estimated_value' => round($estimatedValue, 2),
-            'estimated_low' => round($estimatedValue * 0.85, 2),
-            'estimated_high' => round($estimatedValue * 1.15, 2),
+            'estimated_value' => $estimatedValue,
+            'estimated_low' => $this->valuationMath->roundValueToThousands($estimatedValue * (1 - $rangeSpread)),
+            'estimated_high' => $this->valuationMath->roundValueToThousands($estimatedValue * (1 + $rangeSpread)),
             'ppu_base' => self::FALLBACK_BASE_PPU,
             'comparables_count' => 0,
             'comparables' => [],
@@ -547,26 +570,21 @@ class ValuationService
             ],
             'location_scope' => 'sintetico',
             'calc_breakdown' => [
-                'method' => 'synthetic_fallback_v1',
+                'method' => 'synthetic_fallback_v2',
                 'scope_used' => 'sintetico',
                 'comparables_raw' => 0,
                 'comparables_useful' => 0,
                 'ppu_stats' => [
-                    'weighted_median' => 0,
-                    'adjusted_ppu' => self::FALLBACK_BASE_PPU,
-                    'p25' => self::FALLBACK_BASE_PPU * 0.85,
-                    'p75' => self::FALLBACK_BASE_PPU * 1.15,
+                    'ppu_promedio' => 0,
+                    'ppu_aplicado' => self::FALLBACK_BASE_PPU,
                 ],
                 'valuation_factors' => [
                     'ross_heidecke' => $rossHeideckeFactor,
                     'negotiation' => $negotiationFactor,
-                    'equipment' => $equipmentFactor,
                     'combined_adjustment_factor' => $adjustmentFactor,
                 ],
                 'formula' => [
-                    'estimated_value' => '(fallback_ppu * subject_area_m2) * adjustment_factor',
-                    'estimated_low' => '((fallback_ppu * 0.85) * subject_area_m2) * adjustment_factor',
-                    'estimated_high' => '((fallback_ppu * 1.15) * subject_area_m2) * adjustment_factor',
+                    'estimated_value' => 'ROUNDUP(fallback_ppu × m²_construcción × adjustment_factor, -3)',
                 ],
                 'human_steps' => [
                     'No encontramos suficientes propiedades parecidas en ese momento.',
@@ -580,21 +598,70 @@ class ValuationService
                         number_format((float) self::FALLBACK_BASE_PPU, 2),
                     ),
                     sprintf(
-                        '3) Factores de homologación: Ross-Heidecke %.4f × Negociación %.4f × Equipamiento %.4f = %.4f.',
+                        '3) Factores: Ross-Heidecke %.4f × Negociación %.4f = %.4f.',
                         $rossHeideckeFactor,
                         $negotiationFactor,
-                        $equipmentFactor,
                         $adjustmentFactor,
                     ),
                     sprintf(
-                        '4) Valor final sintético = (PPU fallback × m² construidos) × factor homologado = ($%s × %s) × %.4f = $%s MXN.',
+                        '4) Valor final = ROUNDUP($%s × %s × %.4f, -3) = $%s MXN.',
                         number_format((float) self::FALLBACK_BASE_PPU, 2),
                         number_format((float) $subject['area_construction_m2'], 2),
                         $adjustmentFactor,
-                        number_format($estimatedValue, 2),
+                        number_format($estimatedValue, 0),
                     ),
                 ],
             ],
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function buildAdvisorSteps(
+        int $usefulCount,
+        int $rawCount,
+        string $scope,
+        float $ppuPromedio,
+        float $ppuAplicado,
+        array $subject,
+        float $estimatedValue,
+        float $rossHeidecke,
+        float $subjectDepr,
+    ): array {
+        return [
+            sprintf(
+                '1) Se depuraron comparables activos y se conservaron %d propiedades útiles de %d encontradas en el alcance %s.',
+                $usefulCount,
+                $rawCount,
+                $scope,
+            ),
+            sprintf(
+                '2) Se calcularon factores de homologación por comparable (Zona × Ubicación × Superficie × Edad × Equipamiento × Negociación).',
+            ),
+            sprintf(
+                '3) PPU promedio homologado: $%s/m² → PPU aplicado (redondeado a decenas): $%s/m².',
+                number_format($ppuPromedio, 2),
+                number_format($ppuAplicado, 0),
+            ),
+            sprintf(
+                '4) Ross-Heidecke del sujeto: %.4f (depreciación: %.4f). Edad: %d años, Conservación: %d.',
+                $rossHeidecke,
+                $subjectDepr,
+                $subject['age_years'],
+                $subject['conservation_level'],
+            ),
+            sprintf(
+                '5) Valor = ROUNDUP(PPU_aplicado × m²_construcción, -3) = ROUNDUP($%s × %s, -3) = $%s MXN.',
+                number_format($ppuAplicado, 0),
+                number_format((float) $subject['area_construction_m2'], 2),
+                number_format($estimatedValue, 0),
+            ),
+            sprintf(
+                '6) Rangos: Mínimo (-10%%) = $%s | Máximo (+10%%) = $%s.',
+                number_format($this->valuationMath->roundValueToThousands($ppuAplicado * 0.9 * $subject['area_construction_m2']), 0),
+                number_format($this->valuationMath->roundValueToThousands($ppuAplicado * 1.1 * $subject['area_construction_m2']), 0),
+            ),
         ];
     }
 

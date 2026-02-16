@@ -4,6 +4,7 @@
     const config = window.ValoraNLEstimateConfig || {};
     const chartisBaseUrl = config.chartisBaseUrl || 'https://chartismx.com/api';
     const nlStateId = config.nlStateId || '19';
+    const conservationInference = config.conservationInference || {};
 
     const $form = $('#valuation-form-element');
     const $submit = $('#valuation-submit');
@@ -13,6 +14,9 @@
     const $municipalityOptions = $('#municipality-options');
     const $colony = $('#colony');
     const $colonyOptions = $('#colony-options');
+
+    const $ageYears = $('#age_years');
+    const $conservationLevel = $('#conservation_level');
 
     const municipalityMap = new Map();
 
@@ -30,9 +34,14 @@
     const $calcCounts = $('#calc-counts');
     const $calcPpuWeighted = $('#calc-ppu-weighted');
     const $calcPpuAdjusted = $('#calc-ppu-adjusted');
-    const $calcPpuRange = $('#calc-ppu-range');
     const $calcFormulas = $('#calc-formulas');
     const $calcAdvisorDetails = $('#calc-advisor-details');
+
+    const $residualSection = $('#residual-breakdown-section');
+    const $residualConstruction = $('#residual-construction');
+    const $residualEquipment = $('#residual-equipment');
+    const $residualLand = $('#residual-land');
+    const $residualLandUnit = $('#residual-land-unit');
 
     const formatCurrency = (amount) => {
         if (amount === null || amount === undefined || Number.isNaN(Number(amount))) {
@@ -130,9 +139,28 @@
         });
     };
 
+    const inferConservation = (age) => {
+        const ageNum = parseInt(age, 10);
+        if (Number.isNaN(ageNum) || ageNum < 0) {
+            return '';
+        }
+
+        const thresholds = Object.keys(conservationInference)
+            .map(Number)
+            .sort((a, b) => a - b);
+
+        for (const threshold of thresholds) {
+            if (ageNum <= threshold) {
+                return String(conservationInference[String(threshold)]);
+            }
+        }
+
+        return '4';
+    };
+
     const renderComparables = (comparables) => {
         if (!Array.isArray(comparables) || comparables.length === 0) {
-            $comparablesBody.html('<tr><td colspan="7" class="text-center">No hay comparables disponibles.</td></tr>');
+            $comparablesBody.html('<tr><td colspan="8" class="text-center">No hay comparables disponibles.</td></tr>');
             return;
         }
 
@@ -141,14 +169,18 @@
                 ? `<a href="${item.url}" target="_blank" rel="noopener">Ver anuncio</a>`
                 : 'N/D';
 
+            const fre = item.homologation_factors ? formatNumber(item.homologation_factors.fre, 4) : 'N/D';
+            const ppuHomol = item.ppu_homologado ? formatCurrency(item.ppu_homologado) : 'N/D';
+
             return `
                 <tr>
                     <td>${item.title || 'Comparable'}</td>
                     <td>${formatCurrency(item.price_amount)}</td>
                     <td>${formatNumber(item.area_construction_m2, 2)}</td>
                     <td>${formatCurrency(item.ppu_m2)}</td>
+                    <td>${ppuHomol}</td>
+                    <td>${fre}</td>
                     <td>${item.colony || '—'}, ${item.municipality || '—'}</td>
-                    <td>${formatNumber(item.similarity_score, 3)}</td>
                     <td>${sourceLink}</td>
                 </tr>
             `;
@@ -157,17 +189,29 @@
         $comparablesBody.html(rows);
     };
 
+    const renderResidualBreakdown = (response) => {
+        const residual = response.residual_breakdown;
+        if (!residual) {
+            $residualSection.hide();
+            return;
+        }
+
+        $residualConstruction.text(formatCurrency(residual.construction_value));
+        $residualEquipment.text(formatCurrency(residual.equipment_value));
+        $residualLand.text(formatCurrency(residual.land_value));
+        $residualLandUnit.text(formatCurrency(residual.land_unit_value));
+        $residualSection.show();
+    };
 
     const renderBreakdown = (response) => {
         const breakdown = response.calc_breakdown || {};
         const ppuStats = breakdown.ppu_stats || {};
-        const formulas = breakdown.formula || {};
         const humanSteps = Array.isArray(breakdown.human_steps) ? breakdown.human_steps : [];
         const advisorSteps = Array.isArray(breakdown.advisor_detail_steps) ? breakdown.advisor_detail_steps : [];
 
-        const methodLabel = breakdown.method === 'synthetic_fallback_v1'
+        const methodLabel = (breakdown.method || '').indexOf('synthetic') !== -1
             ? 'Estimación de apoyo (sin suficientes comparables)'
-            : 'Comparación con propiedades similares';
+            : 'Comparación con propiedades similares (Excel v2)';
 
         const scopeLabelMap = {
             colonia: 'Misma colonia',
@@ -180,33 +224,13 @@
         $calcMethod.text(methodLabel);
         $calcScope.text(scopeLabelMap[breakdown.scope_used] || breakdown.scope_used || response.location_scope || 'N/D');
         $calcCounts.text(`${breakdown.comparables_raw ?? 'N/D'} / ${breakdown.comparables_useful ?? 'N/D'}`);
-        $calcPpuWeighted.text(formatCurrency(ppuStats.weighted_median));
-        $calcPpuAdjusted.text(formatCurrency(ppuStats.adjusted_ppu));
-        $calcPpuRange.text(`${formatCurrency(ppuStats.p25)} - ${formatCurrency(ppuStats.p75)}`);
+        $calcPpuWeighted.text(formatCurrency(ppuStats.ppu_promedio));
+        $calcPpuAdjusted.text(formatCurrency(ppuStats.ppu_aplicado));
 
-        const formulaItems = (humanSteps.length > 0
-            ? humanSteps
-            : [
-                `Valor estimado: ${formulas.estimated_value || 'N/D'}`,
-                `Rango bajo: ${formulas.estimated_low || 'N/D'}`,
-                `Rango alto: ${formulas.estimated_high || 'N/D'}`,
-            ]).map((item) => `<li>${item}</li>`).join('');
-
+        const formulaItems = humanSteps.map((item) => `<li>${item}</li>`).join('');
         $calcFormulas.html(formulaItems);
 
-        const valuationFactors = breakdown.valuation_factors || {};
-        const advisorFallback = [
-            `Factor Ross-Heidecke: ${formatNumber(valuationFactors.ross_heidecke, 4)}.`,
-            `Factor de negociación: ${formatNumber(valuationFactors.negotiation, 4)}.`,
-            `Factor de equipamiento: ${formatNumber(valuationFactors.equipment, 4)}.`,
-            `Factor combinado aplicado: ${formatNumber(valuationFactors.combined_adjustment_factor, 4)}.`,
-            `Cálculo base: ${formulas.estimated_value || 'N/D'}.`,
-        ];
-
-        const advisorItems = (advisorSteps.length > 0 ? advisorSteps : advisorFallback)
-            .map((item) => `<li>${item}</li>`)
-            .join('');
-
+        const advisorItems = advisorSteps.map((item) => `<li>${item}</li>`).join('');
         $calcAdvisorDetails.html(advisorItems);
     };
 
@@ -226,6 +250,7 @@
         $confidenceReasons.html(reasons);
         renderComparables(response.comparables || []);
         renderBreakdown(response);
+        renderResidualBreakdown(response);
 
         $('html, body').animate({ scrollTop: $resultsSection.offset().top - 80 }, 400);
     };
@@ -254,6 +279,10 @@
                 colony: { required: true, maxlength: 160 },
                 area_construction_m2: { required: true, number: true, min: 1 },
                 area_land_m2: { number: true, min: 0 },
+                age_years: { required: true, digits: true, min: 0, max: 100 },
+                conservation_level: { digits: true, min: 1, max: 10 },
+                construction_unit_value: { number: true, min: 0, max: 50000 },
+                equipment_value: { number: true, min: 0, max: 5000000 },
                 bedrooms: { digits: true, min: 0 },
                 bathrooms: { number: true, min: 0 },
                 half_bathrooms: { digits: true, min: 0 },
@@ -268,6 +297,10 @@
                     required: 'Ingresa los m² de construcción.',
                     min: 'Debe ser mayor a 0.',
                 },
+                age_years: {
+                    required: 'Ingresa la edad del inmueble.',
+                    max: 'La edad máxima es 100 años.',
+                },
             },
         });
     };
@@ -277,6 +310,16 @@
 
     $municipality.on('change blur', function () {
         loadColonies($(this).val().trim());
+    });
+
+    $ageYears.on('change blur', function () {
+        const age = $(this).val();
+        if ($conservationLevel.val() === '') {
+            const inferred = inferConservation(age);
+            if (inferred) {
+                $conservationLevel.val(inferred);
+            }
+        }
     });
 
     $form.on('submit', function (event) {

@@ -36,8 +36,28 @@
                                 <input id="area_construction_m2" name="area_construction_m2" type="number" min="1" step="0.01" class="form-control" required>
                             </div>
                             <div class="col-md-6">
-                                <label for="area_land_m2" class="form-label">m² terreno (opcional)</label>
-                                <input id="area_land_m2" name="area_land_m2" type="number" min="0" step="0.01" class="form-control">
+                                <label for="area_land_m2" class="form-label">m² terreno</label>
+                                <input id="area_land_m2" name="area_land_m2" type="number" min="0" step="0.01" class="form-control" placeholder="Mejora precisión del cálculo">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="age_years" class="form-label">Edad del inmueble (años) *</label>
+                                <input id="age_years" name="age_years" type="number" min="0" max="100" step="1" class="form-control" required placeholder="Ej. 15">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="conservation_level" class="form-label">Estado de conservación *</label>
+                                <select id="conservation_level" name="conservation_level" class="form-select" required>
+                                    <option value="">Se infiere de la edad</option>
+                                    <option value="10">10 - Nuevo</option>
+                                    <option value="9">9 - Excelente</option>
+                                    <option value="8">8 - Muy bueno</option>
+                                    <option value="7">7 - Bueno</option>
+                                    <option value="6">6 - Regular bueno</option>
+                                    <option value="5">5 - Regular</option>
+                                    <option value="4">4 - Regular malo</option>
+                                    <option value="3">3 - Malo</option>
+                                    <option value="2">2 - Muy malo</option>
+                                    <option value="1">1 - Ruina</option>
+                                </select>
                             </div>
                             <div class="col-md-3">
                                 <label for="bedrooms" class="form-label">Recámaras</label>
@@ -65,6 +85,26 @@
                             </div>
                         </div>
 
+                        <div class="mt-3">
+                            <a class="text-decoration-none" data-bs-toggle="collapse" href="#advanced-fields" role="button" aria-expanded="false" aria-controls="advanced-fields">
+                                <i class="fa-solid fa-sliders me-1"></i> Parámetros avanzados (opcional)
+                            </a>
+                            <div class="collapse mt-2" id="advanced-fields">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="construction_unit_value" class="form-label">Valor unitario construcción ($/m²)</label>
+                                        <input id="construction_unit_value" name="construction_unit_value" type="number" min="0" max="50000" step="0.01" class="form-control" placeholder="Ej. 7500">
+                                        <small class="text-muted">Permite calcular el desglose residual (terreno vs. construcción).</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="equipment_value" class="form-label">Equipamiento (MXN)</label>
+                                        <input id="equipment_value" name="equipment_value" type="number" min="0" max="5000000" step="0.01" class="form-control" placeholder="Ej. 20000">
+                                        <small class="text-muted">Valor del equipamiento adicional del inmueble.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div id="valuation-form-errors" class="alert alert-danger d-none mt-3 mb-0"></div>
 
                         <button id="valuation-submit" type="submit" class="cs_btn cs_style_1 cs_accent_bg cs_white_color cs_radius_7 mt-4">
@@ -80,9 +120,10 @@
                     <h2 class="cs_fs_29 mb-3">¿Qué recibirás?</h2>
                     <ul class="mb-4">
                         <li>Valor estimado en MXN.</li>
-                        <li>Rango bajo/alto según dispersión real del mercado.</li>
+                        <li>Rango bajo/alto (±10%) según metodología del Excel de referencia.</li>
                         <li>Nivel de confianza (0–100) con explicación.</li>
-                        <li>Top comparables para sustentar el cálculo.</li>
+                        <li>Top comparables con factores de homologación.</li>
+                        <li>Desglose residual (si proporcionas valor unitario de construcción).</li>
                     </ul>
                     <p class="mb-0"><strong>Disclaimer:</strong> Esta estimación es referencial y no sustituye un avalúo profesional certificado.</p>
                 </div>
@@ -106,13 +147,13 @@
                 </div>
                 <div class="col-md-3">
                     <div class="border rounded p-3 h-100">
-                        <small class="text-muted">Rango bajo</small>
+                        <small class="text-muted">Rango bajo (-10%)</small>
                         <h4 id="result-estimated-low" class="mb-0">—</h4>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="border rounded p-3 h-100">
-                        <small class="text-muted">Rango alto</small>
+                        <small class="text-muted">Rango alto (+10%)</small>
                         <h4 id="result-estimated-high" class="mb-0">—</h4>
                     </div>
                 </div>
@@ -129,7 +170,35 @@
                 <ul id="result-confidence-reasons" class="mb-0"></ul>
             </div>
 
-
+            <div class="mb-4" id="residual-breakdown-section" style="display:none;">
+                <h3 class="cs_fs_29 mb-3">Desglose residual</h3>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="border rounded p-3 h-100">
+                            <small class="text-muted">V. Construcciones</small>
+                            <h5 id="residual-construction" class="mb-0">—</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3 h-100">
+                            <small class="text-muted">V. Equipamiento</small>
+                            <h5 id="residual-equipment" class="mb-0">—</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3 h-100">
+                            <small class="text-muted">V. Terreno</small>
+                            <h5 id="residual-land" class="mb-0">—</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3 h-100">
+                            <small class="text-muted">V.U. Terreno ($/m²)</small>
+                            <h5 id="residual-land-unit" class="mb-0">—</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div class="mb-4">
                 <h3 class="cs_fs_29 mb-3">¿Cómo obtuvimos este resultado?</h3>
@@ -149,16 +218,12 @@
                             <td id="calc-counts">—</td>
                         </tr>
                         <tr>
-                            <th>Precio por m² de referencia</th>
+                            <th>PPU promedio homologado</th>
                             <td id="calc-ppu-weighted">—</td>
                         </tr>
                         <tr>
-                            <th>Precio por m² ajustado</th>
+                            <th>PPU aplicado (redondeado a decenas)</th>
                             <td id="calc-ppu-adjusted">—</td>
-                        </tr>
-                        <tr>
-                            <th>Rango por m² (mínimo-máximo)</th>
-                            <td id="calc-ppu-range">—</td>
                         </tr>
                         <tr>
                             <th>Explicación sencilla</th>
@@ -186,8 +251,9 @@
                         <th>Precio</th>
                         <th>m²</th>
                         <th>$/m²</th>
+                        <th>$/m² Homol.</th>
+                        <th>FRe</th>
                         <th>Ubicación</th>
-                        <th>Score</th>
                         <th>Fuente</th>
                     </tr>
                     </thead>
@@ -206,6 +272,7 @@
         estimateUrl: <?= json_encode(url_to('valuation.estimate')) ?>,
         chartisBaseUrl: 'https://chartismx.com/api',
         nlStateId: '19',
+        conservationInference: <?= json_encode((new \Config\Valuation())->conservationInferenceByAge) ?>,
     };
 </script>
 <script src="<?= base_url('assets/js/home-valuation.js') ?>"></script>
