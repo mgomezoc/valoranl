@@ -17,6 +17,8 @@
 
     const $ageYears = $('#age_years');
     const $conservationLevel = $('#conservation_level');
+    const $advancedToggle = $('#advanced-fields-toggle');
+    const $advancedFields = $('#advanced-fields');
 
     const municipalityMap = new Map();
 
@@ -358,6 +360,17 @@
 
     $municipality.on('change blur', function () {
         loadColonies($(this).val().trim());
+    });
+
+
+    $advancedToggle.on('click', function (event) {
+        event.preventDefault();
+
+        const isExpanded = $(this).attr('aria-expanded') === 'true';
+        const nextExpanded = !isExpanded;
+
+        $(this).attr('aria-expanded', String(nextExpanded));
+        $advancedFields.toggleClass('show', nextExpanded);
     });
 
     $ageYears.on('change blur', function () {

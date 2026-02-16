@@ -86,7 +86,7 @@
                         </div>
 
                         <div class="mt-3">
-                            <a class="text-decoration-none" data-bs-toggle="collapse" href="#advanced-fields" role="button" aria-expanded="false" aria-controls="advanced-fields">
+                            <a id="advanced-fields-toggle" class="text-decoration-none" data-bs-toggle="collapse" href="#advanced-fields" role="button" aria-expanded="false" aria-controls="advanced-fields">
                                 <i class="fa-solid fa-sliders me-1"></i> Parámetros avanzados (opcional)
                             </a>
                             <div class="collapse mt-2" id="advanced-fields">
