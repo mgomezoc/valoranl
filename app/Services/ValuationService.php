@@ -2,18 +2,17 @@
 
 namespace App\Services;
 
+use App\Libraries\OpenAiValuationService;
 use App\Libraries\ValuationMath;
 use App\Models\ListingModel;
 
 class ValuationService
 {
-    private const MIN_COMPARABLES = 5;
-    private const TARGET_COMPARABLES = 10;
-    private const FALLBACK_BASE_PPU = 18000.0;
 
     public function __construct(
         private readonly ListingModel $listingModel = new ListingModel(),
         private readonly ValuationMath $valuationMath = new ValuationMath(),
+        private readonly OpenAiValuationService $openAiValuationService = new OpenAiValuationService(),
     ) {}
 
     /**
@@ -38,29 +37,38 @@ class ValuationService
 
         $locationScope = 'colonia';
         $rawComparables = $this->getComparables($subject, $areaMin, $areaMax, useColony: true);
-
-        if (count($rawComparables) < self::TARGET_COMPARABLES) {
-            $rawComparables = $this->getComparables($subject, $areaMin, $areaMax, useColony: false);
-            $locationScope = 'municipio';
-        }
-
-        if (count($rawComparables) < self::MIN_COMPARABLES) {
-            $rawComparables = $this->getFallbackComparablesByMunicipality($subject);
-            $locationScope = 'municipio_ampliado';
-        }
-
-        if (count($rawComparables) < self::MIN_COMPARABLES) {
-            $rawComparables = $this->getFallbackComparablesStatewide($subject);
-            $locationScope = 'estado';
-        }
-
         $prepared = $this->prepareComparables($rawComparables, $subject, $locationScope);
+
+        if ($prepared === []) {
+            $locationScope = 'municipio';
+            $rawComparables = $this->getComparables($subject, $areaMin, $areaMax, useColony: false);
+            $prepared = $this->prepareComparables($rawComparables, $subject, $locationScope);
+        }
 
         $comparablesRawCount = count($rawComparables);
         $comparablesUsefulCount = count($prepared);
 
         if ($prepared === []) {
-            return $this->buildSyntheticEstimate($subject);
+            $openAiFallback = $this->openAiValuationService->estimateWithoutComparables(
+                subject: $subject,
+                locationScope: $locationScope,
+                rawCount: $comparablesRawCount,
+                usefulCount: $comparablesUsefulCount,
+            );
+
+            if (is_array($openAiFallback)) {
+                return $openAiFallback;
+            }
+
+            $openAiAttemptMeta = $this->openAiValuationService->getLastAttemptMeta();
+
+            return $this->buildSyntheticFallbackEstimate(
+                subject: $subject,
+                locationScope: $locationScope,
+                rawCount: $comparablesRawCount,
+                usefulCount: $comparablesUsefulCount,
+                openAiAttemptMeta: $openAiAttemptMeta,
+            );
         }
 
         // Compute per-comparable homologation factors
@@ -83,9 +91,10 @@ class ValuationService
 
         $result = [
             'ok' => true,
-            'message' => $locationScope === 'estado'
-                ? 'Valuación estimada con referencia estatal por baja disponibilidad local de comparables.'
-                : 'Valuación estimada calculada correctamente.',
+            'message' => sprintf(
+                'Valuación estimada calculada con comparables del %s.',
+                $this->scopeLabel($locationScope),
+            ),
             'subject' => $subject,
             'estimated_value' => $estimatedValue,
             'estimated_low' => $estimatedLow,
@@ -110,6 +119,14 @@ class ValuationService
                     ],
                 ],
                 'scope_used' => $locationScope,
+                'used_properties_database' => $comparablesUsefulCount > 0,
+                'data_origin' => [
+                    'source' => 'listings',
+                    'source_label' => 'Base interna de propiedades publicadas (tabla listings).',
+                    'used_for_calculation' => $comparablesUsefulCount > 0,
+                    'records_found' => $comparablesRawCount,
+                    'records_used' => $comparablesUsefulCount,
+                ],
                 'comparables_raw' => $comparablesRawCount,
                 'comparables_useful' => $comparablesUsefulCount,
                 'ppu_stats' => [
@@ -130,12 +147,15 @@ class ValuationService
                     'estimated_low' => 'ROUNDUP(PPU_aplicado × 0.9 × m²_construcción, -3)',
                     'estimated_high' => 'ROUNDUP(PPU_aplicado × 1.1 × m²_construcción, -3)',
                 ],
-                'human_steps' => [
-                    'Buscamos propiedades parecidas en tu zona y, si no alcanza, ampliamos el alcance.',
-                    'Calculamos factores de homologación por cada comparable (zona, ubicación, superficie, edad, equipamiento, negociación).',
-                    'Promediamos los precios por m² homologados y redondeamos.',
-                    'Calculamos valor final y rangos ±10%.',
-                ],
+                'human_steps' => $this->buildHumanSteps(
+                    $comparablesRawCount,
+                    $comparablesUsefulCount,
+                    $locationScope,
+                    $ppuPromedio,
+                    $ppuAplicado,
+                    $subject,
+                    $estimatedValue,
+                ),
                 'advisor_detail_steps' => $this->buildAdvisorSteps(
                     $comparablesUsefulCount,
                     $comparablesRawCount,
@@ -226,47 +246,6 @@ class ValuationService
         }
 
         return $builder->get()->getResultArray();
-    }
-
-    /**
-     * @param array<string, mixed> $subject
-     * @return array<int, array<string, mixed>>
-     */
-    private function getFallbackComparablesByMunicipality(array $subject): array
-    {
-        $builder = $this->listingModel->builder();
-
-        return $builder->select(self::COMPARABLE_SELECT)
-            ->where('status', 'active')
-            ->where('price_type', 'sale')
-            ->where('municipality', $subject['municipality'])
-            ->where('price_amount IS NOT NULL', null, false)
-            ->where('area_construction_m2 IS NOT NULL', null, false)
-            ->where('area_construction_m2 >', 0)
-            ->orderBy('updated_at', 'DESC')
-            ->limit(350)
-            ->get()->getResultArray();
-    }
-
-    /**
-     * @param array<string, mixed> $subject
-     * @return array<int, array<string, mixed>>
-     */
-    private function getFallbackComparablesStatewide(array $subject): array
-    {
-        $builder = $this->listingModel->builder();
-
-        return $builder->select(self::COMPARABLE_SELECT)
-            ->where('status', 'active')
-            ->where('price_type', 'sale')
-            ->where('property_type', $subject['property_type'])
-            ->where('state', 'Nuevo León')
-            ->where('price_amount IS NOT NULL', null, false)
-            ->where('area_construction_m2 IS NOT NULL', null, false)
-            ->where('area_construction_m2 >', 0)
-            ->orderBy('updated_at', 'DESC')
-            ->limit(500)
-            ->get()->getResultArray();
     }
 
     /**
@@ -520,8 +499,7 @@ class ValuationService
             match ($locationScope) {
                 'colonia' => 'Comparables de la misma colonia.',
                 'municipio' => 'Comparables del mismo municipio.',
-                'municipio_ampliado' => 'Comparables ampliados dentro del municipio por baja muestra local.',
-                default => 'Comparables de referencia estatal por baja disponibilidad local.',
+                default => 'Comparables del mismo municipio.',
             },
         ];
 
@@ -539,8 +517,14 @@ class ValuationService
      * @param array<string, mixed> $subject
      * @return array<string, mixed>
      */
-    private function buildSyntheticEstimate(array $subject): array
-    {
+    private function buildSyntheticFallbackEstimate(
+        array $subject,
+        string $locationScope,
+        int $rawCount,
+        int $usefulCount,
+        array $openAiAttemptMeta = [],
+    ): array {
+        $fallbackPpu = 18000.0;
         $rossHeideckeFactor = $this->valuationMath->rossHeideckeFactor(
             ageYears: $subject['age_years'],
             conservationLevel: $subject['conservation_level'],
@@ -548,64 +532,103 @@ class ValuationService
         $negotiationFactor = $this->valuationMath->negotiationFactor();
         $adjustmentFactor = round($rossHeideckeFactor * $negotiationFactor, 4);
 
-        $rawValue = self::FALLBACK_BASE_PPU * $subject['area_construction_m2'] * $adjustmentFactor;
+        $rawValue = $fallbackPpu * $subject['area_construction_m2'] * $adjustmentFactor;
         $estimatedValue = $this->valuationMath->roundValueToThousands($rawValue);
         $rangeSpread = (new \Config\Valuation())->rangeSpread;
 
+        $aiStatus = (string) ($openAiAttemptMeta['status'] ?? 'not_called');
+        $aiAttempted = (bool) ($openAiAttemptMeta['attempted'] ?? false);
+        $aiDetail = isset($openAiAttemptMeta['detail']) ? (string) $openAiAttemptMeta['detail'] : null;
+
         return [
             'ok' => true,
-            'message' => 'Valuación estimada con referencia base por falta de comparables publicados en la zona.',
+            'message' => 'No hubo comparables útiles en colonia/municipio; se muestra una estimación de apoyo con baja confianza.',
             'subject' => $subject,
             'estimated_value' => $estimatedValue,
             'estimated_low' => $this->valuationMath->roundValueToThousands($estimatedValue * (1 - $rangeSpread)),
             'estimated_high' => $this->valuationMath->roundValueToThousands($estimatedValue * (1 + $rangeSpread)),
-            'ppu_base' => self::FALLBACK_BASE_PPU,
+            'ppu_base' => $fallbackPpu,
             'comparables_count' => 0,
             'comparables' => [],
             'confidence_score' => 18,
             'confidence_reasons' => [
-                'No se localizaron comparables activos con datos completos.',
-                'Se aplicó una referencia base de mercado para orientación rápida.',
-                'Este resultado es informativo y no sustituye un avalúo profesional.',
+                'No se encontraron comparables útiles dentro de la misma colonia o municipio.',
+                'Se calculó una estimación de apoyo con referencia base de mercado (sin comparables directos).',
+                'El resultado es orientativo y su confiabilidad es baja.',
+                sprintf('Estado de consulta IA: %s%s.', $aiStatus, $aiDetail ? ' (' . $aiDetail . ')' : ''),
             ],
-            'location_scope' => 'sintetico',
+            'location_scope' => $locationScope,
             'calc_breakdown' => [
-                'method' => 'synthetic_fallback_v2',
-                'scope_used' => 'sintetico',
-                'comparables_raw' => 0,
-                'comparables_useful' => 0,
+                'method' => 'synthetic_local_fallback',
+                'scope_used' => $locationScope,
+                'used_properties_database' => false,
+                'data_origin' => [
+                    'source' => 'fallback_reference',
+                    'source_label' => 'Referencia base de mercado para orientación (sin comparables locales útiles).',
+                    'used_for_calculation' => false,
+                    'records_found' => $rawCount,
+                    'records_used' => $usefulCount,
+                ],
+                'comparables_raw' => $rawCount,
+                'comparables_useful' => $usefulCount,
                 'ppu_stats' => [
-                    'ppu_promedio' => 0,
-                    'ppu_aplicado' => self::FALLBACK_BASE_PPU,
+                    'ppu_promedio' => null,
+                    'ppu_aplicado' => $fallbackPpu,
                 ],
                 'valuation_factors' => [
                     'ross_heidecke' => $rossHeideckeFactor,
                     'negotiation' => $negotiationFactor,
                     'combined_adjustment_factor' => $adjustmentFactor,
                 ],
+                'ai_metadata' => [
+                    'provider' => 'openai',
+                    'attempted' => $aiAttempted,
+                    'status' => $aiStatus,
+                    'detail' => $aiDetail,
+                ],
                 'formula' => [
                     'estimated_value' => 'ROUNDUP(fallback_ppu × m²_construcción × adjustment_factor, -3)',
                 ],
                 'human_steps' => [
-                    'No encontramos suficientes propiedades parecidas en ese momento.',
-                    'Usamos una referencia general de mercado para darte una orientación rápida.',
-                    'El resultado es informativo y puede variar frente a un avalúo profesional.',
-                ],
-                'advisor_detail_steps' => [
-                    '1) No se reunió muestra mínima de comparables con datos completos para un método estadístico robusto.',
                     sprintf(
-                        '2) Se usó un precio unitario de referencia de $%s/m² (fallback de mercado).',
-                        number_format((float) self::FALLBACK_BASE_PPU, 2),
+                        'Se buscaron comparables en %s: %d encontrados, %d útiles. Al no haber muestra suficiente, aplicamos una estimación de apoyo.',
+                        $this->scopeLabel($locationScope),
+                        $rawCount,
+                        $usefulCount,
                     ),
                     sprintf(
-                        '3) Factores: Ross-Heidecke %.4f × Negociación %.4f = %.4f.',
+                        'Se usó un PPU base de $%s/m² con ajuste por estado/edad (Ross-Heidecke) y negociación.',
+                        number_format($fallbackPpu, 0),
+                    ),
+                    sprintf(
+                        'Cálculo estimado: $%s × %s m² × %.4f = $%s MXN.',
+                        number_format($fallbackPpu, 0),
+                        number_format((float) $subject['area_construction_m2'], 2),
+                        $adjustmentFactor,
+                        number_format($estimatedValue, 0),
+                    ),
+                    'Importante: este valor es orientativo y tiene baja confiabilidad por falta de comparables locales.',
+                    sprintf('Consulta IA en fallback: %s%s.', $aiStatus, $aiDetail ? ' (' . $aiDetail . ')' : ''),
+                ],
+                'advisor_detail_steps' => [
+                    sprintf(
+                        '1) Búsqueda local restringida (colonia/municipio). Registros encontrados: %d. Utilizables: %d.',
+                        $rawCount,
+                        $usefulCount,
+                    ),
+                    sprintf(
+                        '2) Fallback sintético local: PPU base $%s/m².',
+                        number_format($fallbackPpu, 2),
+                    ),
+                    sprintf(
+                        '3) Ajuste aplicado: Ross-Heidecke %.4f × Negociación %.4f = %.4f.',
                         $rossHeideckeFactor,
                         $negotiationFactor,
                         $adjustmentFactor,
                     ),
                     sprintf(
                         '4) Valor final = ROUNDUP($%s × %s × %.4f, -3) = $%s MXN.',
-                        number_format((float) self::FALLBACK_BASE_PPU, 2),
+                        number_format($fallbackPpu, 2),
                         number_format((float) $subject['area_construction_m2'], 2),
                         $adjustmentFactor,
                         number_format($estimatedValue, 0),
@@ -663,6 +686,59 @@ class ValuationService
                 number_format($this->valuationMath->roundValueToThousands($ppuAplicado * 1.1 * $subject['area_construction_m2']), 0),
             ),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $subject
+     * @return array<int, string>
+     */
+    private function buildHumanSteps(
+        int $rawCount,
+        int $usefulCount,
+        string $scope,
+        float $ppuPromedio,
+        float $ppuAplicado,
+        array $subject,
+        float $estimatedValue,
+    ): array {
+        $scopeLabel = $this->scopeLabel($scope);
+
+        return [
+            sprintf(
+                'Sí usamos datos de la base de propiedades: encontramos %d y usamos %d comparables válidos (%s).',
+                $rawCount,
+                $usefulCount,
+                $scopeLabel,
+            ),
+            'A cada comparable se le ajustó su precio por m² con factores de zona, ubicación, superficie, edad, equipamiento y negociación para hacerlo comparable con tu inmueble.',
+            sprintf(
+                'Promedio homologado: $%s/m² → valor aplicado: $%s/m² (redondeado a decenas).',
+                number_format($ppuPromedio, 2),
+                number_format($ppuAplicado, 0),
+            ),
+            sprintf(
+                'Valor final: $%s/m² × %s m² = $%s MXN (redondeado a miles).',
+                number_format($ppuAplicado, 0),
+                number_format((float) $subject['area_construction_m2'], 2),
+                number_format($estimatedValue, 0),
+            ),
+            sprintf(
+                'Rango de orientación: mínimo $%s y máximo $%s (±10%%).',
+                number_format($this->valuationMath->roundValueToThousands($ppuAplicado * 0.9 * $subject['area_construction_m2']), 0),
+                number_format($this->valuationMath->roundValueToThousands($ppuAplicado * 1.1 * $subject['area_construction_m2']), 0),
+            ),
+        ];
+    }
+
+    private function scopeLabel(string $scope): string
+    {
+        return match ($scope) {
+            'colonia' => 'misma colonia',
+            'municipio' => 'mismo municipio',
+            'municipio_ampliado' => 'municipio ampliado',
+            'estado' => 'referencia estatal',
+            default => $scope,
+        };
     }
 
     /**

@@ -17,6 +17,8 @@
 
     const $ageYears = $('#age_years');
     const $conservationLevel = $('#conservation_level');
+    const $advancedToggle = $('#advanced-fields-toggle');
+    const $advancedFields = $('#advanced-fields');
 
     const municipalityMap = new Map();
 
@@ -28,10 +30,15 @@
     const $confidence = $('#result-confidence');
     const $confidenceReasons = $('#result-confidence-reasons');
     const $comparablesBody = $('#comparables-table tbody');
+    const $aiPoweredBanner = $('#ai-powered-banner');
+    const $aiPoweredMessage = $('#ai-powered-message');
 
     const $calcMethod = $('#calc-method');
     const $calcScope = $('#calc-scope');
     const $calcCounts = $('#calc-counts');
+    const $calcDbUsage = $('#calc-db-usage');
+    const $calcDataOrigin = $('#calc-data-origin');
+    const $calcAiStatus = $('#calc-ai-status');
     const $calcPpuWeighted = $('#calc-ppu-weighted');
     const $calcPpuAdjusted = $('#calc-ppu-adjusted');
     const $calcFormulas = $('#calc-formulas');
@@ -209,9 +216,13 @@
         const humanSteps = Array.isArray(breakdown.human_steps) ? breakdown.human_steps : [];
         const advisorSteps = Array.isArray(breakdown.advisor_detail_steps) ? breakdown.advisor_detail_steps : [];
 
-        const methodLabel = (breakdown.method || '').indexOf('synthetic') !== -1
-            ? 'Estimación de apoyo (sin suficientes comparables)'
-            : 'Comparación con propiedades similares (Excel v2)';
+        const methodCode = (breakdown.method || '').toLowerCase();
+        const isOpenAiMethod = methodCode.indexOf('openai') !== -1;
+        const methodLabel = isOpenAiMethod
+            ? 'Estimación de apoyo potenciada por IA'
+            : (methodCode.indexOf('synthetic') !== -1
+                ? 'Estimación de apoyo (sin suficientes comparables)'
+                : 'Comparación con propiedades similares (Excel v2)');
 
         const scopeLabelMap = {
             colonia: 'Misma colonia',
@@ -221,16 +232,55 @@
             sintetico: 'Referencia general de mercado',
         };
 
+        const dataOrigin = breakdown.data_origin || {};
+        const usedDatabase = breakdown.used_properties_database === true || dataOrigin.used_for_calculation === true;
+        const aiMetadata = breakdown.ai_metadata || {};
+        const aiAttempted = aiMetadata.attempted === true;
+        const aiStatus = aiMetadata.status || 'no_intentado';
+
+        if (isOpenAiMethod) {
+            const aiDisclaimer = breakdown.valuation_factors && breakdown.valuation_factors.ai_disclaimer
+                ? breakdown.valuation_factors.ai_disclaimer
+                : 'Estimación orientativa generada por IA por falta de comparables locales.';
+            $aiPoweredMessage.text(aiDisclaimer);
+            $aiPoweredBanner.show();
+        } else if (aiAttempted) {
+            $aiPoweredMessage.text(`Se intentó consultar IA para este cálculo, pero no estuvo disponible (estado: ${aiStatus}). Se aplicó fallback local.`);
+            $aiPoweredBanner.show();
+        } else {
+            $aiPoweredBanner.hide();
+        }
+
         $calcMethod.text(methodLabel);
         $calcScope.text(scopeLabelMap[breakdown.scope_used] || breakdown.scope_used || response.location_scope || 'N/D');
         $calcCounts.text(`${breakdown.comparables_raw ?? 'N/D'} / ${breakdown.comparables_useful ?? 'N/D'}`);
+        const aiStatusLabelMap = {
+            success: 'Consulta IA exitosa',
+            disabled: 'IA deshabilitada en .env',
+            missing_api_key: 'Falta OPENAI_API_KEY',
+            request_exception: 'Error de conexión/ejecución al consultar OpenAI',
+            non_2xx_status: 'OpenAI respondió con error HTTP',
+            invalid_json_response: 'Respuesta IA inválida (JSON)',
+            empty_message_content: 'Respuesta IA vacía',
+            invalid_model_payload: 'Payload IA sin formato esperado',
+            invalid_amounts: 'IA no devolvió montos válidos',
+            request_started: 'Consulta IA iniciada',
+        };
+
+        $calcDbUsage.text(usedDatabase ? 'Sí. Se utilizaron comparables de la base de propiedades.' : 'No. Se usó referencia de mercado sin comparables utilizables.');
+        $calcDataOrigin.text(dataOrigin.source_label || 'N/D');
+        $calcAiStatus.text(aiStatusLabelMap[aiStatus] || aiStatus || 'N/D');
         $calcPpuWeighted.text(formatCurrency(ppuStats.ppu_promedio));
         $calcPpuAdjusted.text(formatCurrency(ppuStats.ppu_aplicado));
 
-        const formulaItems = humanSteps.map((item) => `<li>${item}</li>`).join('');
+        const formulaItems = humanSteps.length > 0
+            ? humanSteps.map((item) => `<li>${item}</li>`).join('')
+            : '<li>Sin explicación disponible.</li>';
         $calcFormulas.html(formulaItems);
 
-        const advisorItems = advisorSteps.map((item) => `<li>${item}</li>`).join('');
+        const advisorItems = advisorSteps.length > 0
+            ? advisorSteps.map((item) => `<li>${item}</li>`).join('')
+            : '<li>Sin detalle técnico disponible.</li>';
         $calcAdvisorDetails.html(advisorItems);
     };
 
@@ -310,6 +360,17 @@
 
     $municipality.on('change blur', function () {
         loadColonies($(this).val().trim());
+    });
+
+
+    $advancedToggle.on('click', function (event) {
+        event.preventDefault();
+
+        const isExpanded = $(this).attr('aria-expanded') === 'true';
+        const nextExpanded = !isExpanded;
+
+        $(this).attr('aria-expanded', String(nextExpanded));
+        $advancedFields.toggleClass('show', nextExpanded);
     });
 
     $ageYears.on('change blur', function () {

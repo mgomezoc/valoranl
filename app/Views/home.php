@@ -86,7 +86,7 @@
                         </div>
 
                         <div class="mt-3">
-                            <a class="text-decoration-none" data-bs-toggle="collapse" href="#advanced-fields" role="button" aria-expanded="false" aria-controls="advanced-fields">
+                            <a id="advanced-fields-toggle" class="text-decoration-none" data-bs-toggle="collapse" href="#advanced-fields" role="button" aria-expanded="false" aria-controls="advanced-fields">
                                 <i class="fa-solid fa-sliders me-1"></i> Parámetros avanzados (opcional)
                             </a>
                             <div class="collapse mt-2" id="advanced-fields">
@@ -165,6 +165,17 @@
                 </div>
             </div>
 
+
+            <div id="ai-powered-banner" class="alert alert-warning mb-4" style="display:none;">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-2 align-items-md-center">
+                    <div>
+                        <strong>⚠️ Resultado potenciado por IA (baja confianza)</strong><br>
+                        <span id="ai-powered-message">No se encontraron comparables locales suficientes; se muestra una estimación orientativa.</span>
+                    </div>
+                    <span class="badge text-bg-dark">✨ IA para acelerar tu primer rango de precio</span>
+                </div>
+            </div>
+
             <div class="mb-4">
                 <strong>Explicación:</strong>
                 <ul id="result-confidence-reasons" class="mb-0"></ul>
@@ -216,6 +227,18 @@
                         <tr>
                             <th>Propiedades encontradas / usadas</th>
                             <td id="calc-counts">—</td>
+                        </tr>
+                        <tr>
+                            <th>¿Se usaron propiedades de la base para calcular?</th>
+                            <td id="calc-db-usage">—</td>
+                        </tr>
+                        <tr>
+                            <th>Origen de los datos usados</th>
+                            <td id="calc-data-origin">—</td>
+                        </tr>
+                        <tr>
+                            <th>Estado de consulta IA</th>
+                            <td id="calc-ai-status">—</td>
                         </tr>
                         <tr>
                             <th>PPU promedio homologado</th>
