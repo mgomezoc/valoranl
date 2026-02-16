@@ -237,6 +237,10 @@
                             <td id="calc-data-origin">—</td>
                         </tr>
                         <tr>
+                            <th>Estado de consulta IA</th>
+                            <td id="calc-ai-status">—</td>
+                        </tr>
+                        <tr>
                             <th>PPU promedio homologado</th>
                             <td id="calc-ppu-weighted">—</td>
                         </tr>

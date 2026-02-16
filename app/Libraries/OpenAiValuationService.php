@@ -8,6 +8,13 @@ class OpenAiValuationService
 {
     private CURLRequest $httpClient;
 
+    /** @var array<string, mixed> */
+    private array $lastAttempt = [
+        'attempted' => false,
+        'status' => 'not_called',
+        'detail' => null,
+    ];
+
     public function __construct(?CURLRequest $httpClient = null)
     {
         $this->httpClient = $httpClient ?? service('curlrequest');
@@ -19,14 +26,27 @@ class OpenAiValuationService
      */
     public function estimateWithoutComparables(array $subject, string $locationScope, int $rawCount, int $usefulCount): ?array
     {
+        $this->lastAttempt = [
+            'attempted' => false,
+            'status' => 'not_called',
+            'detail' => null,
+        ];
+
         if (! $this->isEnabled()) {
+            $this->lastAttempt['status'] = 'disabled';
+
             return null;
         }
 
         $apiKey = (string) env('OPENAI_API_KEY', '');
         if ($apiKey === '') {
+            $this->lastAttempt['status'] = 'missing_api_key';
+
             return null;
         }
+
+        $this->lastAttempt['attempted'] = true;
+        $this->lastAttempt['status'] = 'request_started';
 
         $model = (string) env('OPENAI_VALUATION_MODEL', 'gpt-4o-mini');
         $temperature = (float) env('OPENAI_VALUATION_TEMPERATURE', 0.2);
@@ -78,6 +98,9 @@ class OpenAiValuationService
                 'timeout' => $timeoutSeconds,
             ]);
         } catch (\Throwable $exception) {
+            $this->lastAttempt['status'] = 'request_exception';
+            $this->lastAttempt['detail'] = $exception->getMessage();
+
             log_message('error', 'OpenAI valuation request failed: {message}', ['message' => $exception->getMessage()]);
 
             return null;
@@ -85,6 +108,9 @@ class OpenAiValuationService
 
         $statusCode = $response->getStatusCode();
         if ($statusCode < 200 || $statusCode >= 300) {
+            $this->lastAttempt['status'] = 'non_2xx_status';
+            $this->lastAttempt['detail'] = 'HTTP ' . $statusCode;
+
             log_message('error', 'OpenAI valuation response status {status}', ['status' => $statusCode]);
 
             return null;
@@ -92,16 +118,22 @@ class OpenAiValuationService
 
         $body = json_decode($response->getBody(), true);
         if (! is_array($body)) {
+            $this->lastAttempt['status'] = 'invalid_json_response';
+
             return null;
         }
 
         $content = $body['choices'][0]['message']['content'] ?? null;
         if (! is_string($content) || trim($content) === '') {
+            $this->lastAttempt['status'] = 'empty_message_content';
+
             return null;
         }
 
         $parsed = $this->decodeModelJson($content);
         if ($parsed === null) {
+            $this->lastAttempt['status'] = 'invalid_model_payload';
+
             return null;
         }
 
@@ -110,6 +142,8 @@ class OpenAiValuationService
         $estimatedHigh = $this->normalizeMoney($parsed['estimated_high'] ?? null);
 
         if ($estimatedValue === null || $estimatedLow === null || $estimatedHigh === null) {
+            $this->lastAttempt['status'] = 'invalid_amounts';
+
             return null;
         }
 
@@ -146,6 +180,9 @@ class OpenAiValuationService
         }
 
         $requestId = isset($body['id']) ? (string) $body['id'] : null;
+
+        $this->lastAttempt['status'] = 'success';
+        $this->lastAttempt['detail'] = $requestId;
 
         return [
             'ok' => true,
@@ -190,6 +227,14 @@ class OpenAiValuationService
                 ],
             ],
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getLastAttemptMeta(): array
+    {
+        return $this->lastAttempt;
     }
 
     private function isEnabled(): bool

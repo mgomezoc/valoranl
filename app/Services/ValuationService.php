@@ -60,11 +60,14 @@ class ValuationService
                 return $openAiFallback;
             }
 
+            $openAiAttemptMeta = $this->openAiValuationService->getLastAttemptMeta();
+
             return $this->buildSyntheticFallbackEstimate(
                 subject: $subject,
                 locationScope: $locationScope,
                 rawCount: $comparablesRawCount,
                 usefulCount: $comparablesUsefulCount,
+                openAiAttemptMeta: $openAiAttemptMeta,
             );
         }
 
@@ -514,8 +517,13 @@ class ValuationService
      * @param array<string, mixed> $subject
      * @return array<string, mixed>
      */
-    private function buildSyntheticFallbackEstimate(array $subject, string $locationScope, int $rawCount, int $usefulCount): array
-    {
+    private function buildSyntheticFallbackEstimate(
+        array $subject,
+        string $locationScope,
+        int $rawCount,
+        int $usefulCount,
+        array $openAiAttemptMeta = [],
+    ): array {
         $fallbackPpu = 18000.0;
         $rossHeideckeFactor = $this->valuationMath->rossHeideckeFactor(
             ageYears: $subject['age_years'],
@@ -527,6 +535,10 @@ class ValuationService
         $rawValue = $fallbackPpu * $subject['area_construction_m2'] * $adjustmentFactor;
         $estimatedValue = $this->valuationMath->roundValueToThousands($rawValue);
         $rangeSpread = (new \Config\Valuation())->rangeSpread;
+
+        $aiStatus = (string) ($openAiAttemptMeta['status'] ?? 'not_called');
+        $aiAttempted = (bool) ($openAiAttemptMeta['attempted'] ?? false);
+        $aiDetail = isset($openAiAttemptMeta['detail']) ? (string) $openAiAttemptMeta['detail'] : null;
 
         return [
             'ok' => true,
@@ -543,6 +555,7 @@ class ValuationService
                 'No se encontraron comparables útiles dentro de la misma colonia o municipio.',
                 'Se calculó una estimación de apoyo con referencia base de mercado (sin comparables directos).',
                 'El resultado es orientativo y su confiabilidad es baja.',
+                sprintf('Estado de consulta IA: %s%s.', $aiStatus, $aiDetail ? ' (' . $aiDetail . ')' : ''),
             ],
             'location_scope' => $locationScope,
             'calc_breakdown' => [
@@ -567,6 +580,12 @@ class ValuationService
                     'negotiation' => $negotiationFactor,
                     'combined_adjustment_factor' => $adjustmentFactor,
                 ],
+                'ai_metadata' => [
+                    'provider' => 'openai',
+                    'attempted' => $aiAttempted,
+                    'status' => $aiStatus,
+                    'detail' => $aiDetail,
+                ],
                 'formula' => [
                     'estimated_value' => 'ROUNDUP(fallback_ppu × m²_construcción × adjustment_factor, -3)',
                 ],
@@ -589,6 +608,7 @@ class ValuationService
                         number_format($estimatedValue, 0),
                     ),
                     'Importante: este valor es orientativo y tiene baja confiabilidad por falta de comparables locales.',
+                    sprintf('Consulta IA en fallback: %s%s.', $aiStatus, $aiDetail ? ' (' . $aiDetail . ')' : ''),
                 ],
                 'advisor_detail_steps' => [
                     sprintf(

@@ -36,6 +36,7 @@
     const $calcCounts = $('#calc-counts');
     const $calcDbUsage = $('#calc-db-usage');
     const $calcDataOrigin = $('#calc-data-origin');
+    const $calcAiStatus = $('#calc-ai-status');
     const $calcPpuWeighted = $('#calc-ppu-weighted');
     const $calcPpuAdjusted = $('#calc-ppu-adjusted');
     const $calcFormulas = $('#calc-formulas');
@@ -231,12 +232,18 @@
 
         const dataOrigin = breakdown.data_origin || {};
         const usedDatabase = breakdown.used_properties_database === true || dataOrigin.used_for_calculation === true;
+        const aiMetadata = breakdown.ai_metadata || {};
+        const aiAttempted = aiMetadata.attempted === true;
+        const aiStatus = aiMetadata.status || 'no_intentado';
 
         if (isOpenAiMethod) {
             const aiDisclaimer = breakdown.valuation_factors && breakdown.valuation_factors.ai_disclaimer
                 ? breakdown.valuation_factors.ai_disclaimer
                 : 'Estimación orientativa generada por IA por falta de comparables locales.';
             $aiPoweredMessage.text(aiDisclaimer);
+            $aiPoweredBanner.show();
+        } else if (aiAttempted) {
+            $aiPoweredMessage.text(`Se intentó consultar IA para este cálculo, pero no estuvo disponible (estado: ${aiStatus}). Se aplicó fallback local.`);
             $aiPoweredBanner.show();
         } else {
             $aiPoweredBanner.hide();
@@ -245,8 +252,22 @@
         $calcMethod.text(methodLabel);
         $calcScope.text(scopeLabelMap[breakdown.scope_used] || breakdown.scope_used || response.location_scope || 'N/D');
         $calcCounts.text(`${breakdown.comparables_raw ?? 'N/D'} / ${breakdown.comparables_useful ?? 'N/D'}`);
+        const aiStatusLabelMap = {
+            success: 'Consulta IA exitosa',
+            disabled: 'IA deshabilitada en .env',
+            missing_api_key: 'Falta OPENAI_API_KEY',
+            request_exception: 'Error de conexión/ejecución al consultar OpenAI',
+            non_2xx_status: 'OpenAI respondió con error HTTP',
+            invalid_json_response: 'Respuesta IA inválida (JSON)',
+            empty_message_content: 'Respuesta IA vacía',
+            invalid_model_payload: 'Payload IA sin formato esperado',
+            invalid_amounts: 'IA no devolvió montos válidos',
+            request_started: 'Consulta IA iniciada',
+        };
+
         $calcDbUsage.text(usedDatabase ? 'Sí. Se utilizaron comparables de la base de propiedades.' : 'No. Se usó referencia de mercado sin comparables utilizables.');
         $calcDataOrigin.text(dataOrigin.source_label || 'N/D');
+        $calcAiStatus.text(aiStatusLabelMap[aiStatus] || aiStatus || 'N/D');
         $calcPpuWeighted.text(formatCurrency(ppuStats.ppu_promedio));
         $calcPpuAdjusted.text(formatCurrency(ppuStats.ppu_aplicado));
 
