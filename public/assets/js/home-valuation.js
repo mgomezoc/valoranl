@@ -223,12 +223,14 @@
         const advisorSteps = Array.isArray(breakdown.advisor_detail_steps) ? breakdown.advisor_detail_steps : [];
 
         const methodCode = (breakdown.method || '').toLowerCase();
-        const isOpenAiMethod = methodCode.indexOf('openai') !== -1;
-        const methodLabel = isOpenAiMethod
-            ? 'Estimación de apoyo potenciada por IA'
-            : (methodCode.indexOf('synthetic') !== -1
-                ? 'Estimación de apoyo (sin suficientes comparables)'
-                : 'Comparación con propiedades similares (Excel v2)');
+        const isOpenAiMethod = methodCode.indexOf('openai') !== -1 || methodCode.indexOf('ai_augmented') !== -1 || breakdown.ai_powered === true;
+        const methodLabel = methodCode.indexOf('ai_augmented') !== -1
+            ? 'Algoritmo local con PPU de OpenAI (sin comparables locales)'
+            : (isOpenAiMethod
+                ? 'Estimación de apoyo potenciada por IA'
+                : (methodCode.indexOf('synthetic') !== -1
+                    ? 'Estimación de apoyo (sin suficientes comparables)'
+                    : 'Comparación con propiedades similares (Excel v2)'));
 
         const scopeLabelMap = {
             colonia: 'Misma colonia',
@@ -244,7 +246,7 @@
         const aiAttempted = aiMetadata.attempted === true;
         const aiStatus = aiMetadata.status || 'no_intentado';
 
-        if (isOpenAiMethod) {
+        if (isOpenAiMethod || aiStatus === 'success') {
             const aiDisclaimer = breakdown.valuation_factors && breakdown.valuation_factors.ai_disclaimer
                 ? breakdown.valuation_factors.ai_disclaimer
                 : 'Estimación orientativa generada por IA por falta de comparables locales.';

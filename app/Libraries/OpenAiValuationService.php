@@ -71,6 +71,12 @@ class OpenAiValuationService
             usefulCount: $usefulCount,
         );
 
+        log_message('info', 'OpenAI valuation prompt payload. model={model} system={systemPrompt} user={userPayload}', [
+            'model' => $model,
+            'systemPrompt' => $systemPrompt,
+            'userPayload' => json_encode($userPayload, JSON_UNESCAPED_UNICODE),
+        ]);
+
         $headers = [
             'Authorization' => 'Bearer ' . $apiKey,
             'Content-Type' => 'application/json',

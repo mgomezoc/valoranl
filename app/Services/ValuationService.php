@@ -670,12 +670,6 @@ class ValuationService
         array $openAiFallback,
     ): array {
         $rangeSpread = (new \Config\Valuation())->rangeSpread;
-        $rossHeideckeFactor = $this->valuationMath->rossHeideckeFactor(
-            ageYears: $subject['age_years'],
-            conservationLevel: $subject['conservation_level'],
-        );
-        $negotiationFactor = $this->valuationMath->negotiationFactor();
-        $adjustmentFactor = round($rossHeideckeFactor * $negotiationFactor, 4);
 
         $aiPpu = isset($openAiFallback['calc_breakdown']['ppu_stats']['ppu_aplicado'])
             ? (float) $openAiFallback['calc_breakdown']['ppu_stats']['ppu_aplicado']
@@ -686,7 +680,7 @@ class ValuationService
         }
 
         $aiPpu = $this->valuationMath->roundPpu($aiPpu > 0 ? $aiPpu : 18000.0);
-        $aiAdjustedValue = $this->valuationMath->roundValueToThousands($aiPpu * (float) $subject['area_construction_m2'] * $adjustmentFactor);
+        $aiAdjustedValue = $this->valuationMath->roundValueToThousands($aiPpu * (float) $subject['area_construction_m2']);
 
         $result = $openAiFallback;
         $result['message'] = 'Sin comparables locales, se muestran dos referencias: algoritmo base y cálculo potenciado con OpenAI.';
@@ -705,10 +699,8 @@ class ValuationService
         $result['calc_breakdown']['data_origin']['source_label'] = 'PPU de apoyo generado por OpenAI para reemplazar comparables faltantes y continuar con el algoritmo local.';
         $result['calc_breakdown']['data_origin']['used_for_calculation'] = false;
         $result['calc_breakdown']['ppu_stats']['ppu_aplicado'] = $aiPpu;
-        $result['calc_breakdown']['valuation_factors']['ross_heidecke'] = $rossHeideckeFactor;
-        $result['calc_breakdown']['valuation_factors']['negotiation'] = $negotiationFactor;
-        $result['calc_breakdown']['valuation_factors']['combined_adjustment_factor'] = $adjustmentFactor;
-        $result['calc_breakdown']['formula']['estimated_value'] = 'ROUNDUP(ppu_openai × m²_construcción × adjustment_factor, -3)';
+        $result['calc_breakdown']['valuation_factors']['ai_ppu_direct'] = true;
+        $result['calc_breakdown']['formula']['estimated_value'] = 'ROUNDUP(ppu_openai × m²_construcción, -3)';
         $result['calc_breakdown']['result_comparison'] = [
             'algorithm_existing' => [
                 'label' => 'Algoritmo original (sin IA)',
