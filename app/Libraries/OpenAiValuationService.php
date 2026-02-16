@@ -34,6 +34,7 @@ class OpenAiValuationService
 
         if (! $this->isEnabled()) {
             $this->lastAttempt['status'] = 'disabled';
+            log_message('info', 'OpenAI valuation skipped: service disabled by OPENAI_VALUATION_ENABLED.');
 
             return null;
         }
@@ -41,6 +42,7 @@ class OpenAiValuationService
         $apiKey = $this->resolveApiKey();
         if ($apiKey === '') {
             $this->lastAttempt['status'] = 'missing_api_key';
+            log_message('warning', 'OpenAI valuation skipped: API key is missing.');
 
             return null;
         }
@@ -54,6 +56,13 @@ class OpenAiValuationService
         $timeoutSeconds = (int) env('OPENAI_VALUATION_TIMEOUT', 15);
 
         $systemPrompt = 'Eres un analista inmobiliario experto en Nuevo León. Devuelve únicamente JSON válido sin markdown.';
+
+        log_message('info', 'OpenAI valuation request started. model={model} scope={scope} found={found} used={used}', [
+            'model' => $model,
+            'scope' => $locationScope,
+            'found' => $rawCount,
+            'used' => $usefulCount,
+        ]);
 
         $userPayload = [
             'task' => 'Generar estimación de valuación cuando no hay comparables locales.',
@@ -115,6 +124,10 @@ class OpenAiValuationService
             $this->lastAttempt['detail'] = $exception->getMessage();
 
             log_message('error', 'OpenAI valuation request failed: {message}', ['message' => $exception->getMessage()]);
+            log_message('info', 'OpenAI valuation request completed with status={status} detail={detail}', [
+                'status' => $this->lastAttempt['status'],
+                'detail' => (string) $this->lastAttempt['detail'],
+            ]);
 
             return null;
         }
@@ -129,6 +142,10 @@ class OpenAiValuationService
             log_message('error', 'OpenAI valuation response status {status}: {detail}', [
                 'status' => $statusCode,
                 'detail' => $errorDetail !== '' ? $errorDetail : 'no-error-detail',
+            ]);
+            log_message('info', 'OpenAI valuation request completed with status={status} detail={detail}', [
+                'status' => $this->lastAttempt['status'],
+                'detail' => (string) $this->lastAttempt['detail'],
             ]);
 
             return null;
@@ -202,9 +219,14 @@ class OpenAiValuationService
         $this->lastAttempt['status'] = 'success';
         $this->lastAttempt['detail'] = $requestId;
 
+        log_message('info', 'OpenAI valuation request completed with status={status} request_id={requestId}', [
+            'status' => $this->lastAttempt['status'],
+            'requestId' => $requestId ?? 'n/a',
+        ]);
+
         return [
             'ok' => true,
-            'message' => 'No hubo comparables útiles en colonia/municipio; se muestra una estimación potenciada por IA con baja confianza.',
+            'message' => 'No se encontraron comparables locales útiles; se generó una estimación de apoyo con IA (confianza baja).',
             'subject' => $subject,
             'estimated_value' => $estimatedValue,
             'estimated_low' => $estimatedLow,

@@ -245,7 +245,7 @@
             $aiPoweredMessage.text(aiDisclaimer);
             $aiPoweredBanner.show();
         } else if (aiAttempted) {
-            $aiPoweredMessage.text(`Se intentó consultar IA para este cálculo, pero no estuvo disponible (estado: ${aiStatus}). Se aplicó fallback local.`);
+            $aiPoweredMessage.text(`Intentamos consultar IA para mejorar este cálculo, pero no estuvo disponible (estado: ${aiStatus}). Mostramos una estimación local orientativa.`);
             $aiPoweredBanner.show();
         } else {
             $aiPoweredBanner.hide();

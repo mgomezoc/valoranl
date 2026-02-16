@@ -169,8 +169,8 @@
             <div id="ai-powered-banner" class="alert alert-warning mb-4" style="display:none;">
                 <div class="d-flex flex-column flex-md-row justify-content-between gap-2 align-items-md-center">
                     <div>
-                        <strong>⚠️ Resultado potenciado por IA (baja confianza)</strong><br>
-                        <span id="ai-powered-message">No se encontraron comparables locales suficientes; se muestra una estimación orientativa.</span>
+                        <strong>⚠️ Estimación de apoyo con IA (confianza baja)</strong><br>
+                        <span id="ai-powered-message">No se encontraron comparables locales suficientes; este rango es orientativo y debe validarse con avalúo profesional.</span>
                     </div>
                     <span class="badge text-bg-dark">✨ IA para acelerar tu primer rango de precio</span>
                 </div>
