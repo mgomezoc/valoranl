@@ -264,12 +264,27 @@ class OpenAiValuationService
 
     private function resolveApiKey(): string
     {
-        $directKey = $this->normalizeEnvValue((string) env('OPENAI_API_KEY', ''));
+        $directKey = $this->normalizeApiKey((string) env('OPENAI_API_KEY', ''));
         if ($directKey !== '') {
             return $directKey;
         }
 
-        return $this->normalizeEnvValue((string) env('OPENAI_KEY', ''));
+        return $this->normalizeApiKey((string) env('OPENAI_KEY', ''));
+    }
+
+    private function normalizeApiKey(string $value): string
+    {
+        $normalized = $this->normalizeEnvValue($value);
+        if ($normalized === '') {
+            return '';
+        }
+
+        // Common copy/paste typo in .env values: duplicated `sk-` prefix.
+        if (str_starts_with($normalized, 'sk-sk-')) {
+            $normalized = substr($normalized, 3);
+        }
+
+        return $normalized;
     }
 
     private function normalizeEnvValue(string $value): string
