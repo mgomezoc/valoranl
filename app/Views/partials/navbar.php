@@ -4,7 +4,7 @@
             <div class="cs_main_header_in">
                 <div class="cs_main_header_left">
                     <a class="cs_site_branding" href="<?= url_to('home.index') ?>" aria-label="Ir a inicio">
-                        <img src="<?= base_url('assets/img/logo-valoranl.svg') ?>" alt="Logo de ValoraNL">
+                        <img src="<?= base_url('assets/img/valoranl/logo.png') ?>" alt="Logo de ValoraNL">
                     </a>
                     <nav class="cs_nav cs_heading_color">
                         <ul class="cs_nav_list">

@@ -445,7 +445,11 @@
                     : 'Comparación con propiedades similares (Excel v2)'));
 
         const scopeLabelMap = {
+            radius_1km: 'Radio de 1 km',
+            radius_2km: 'Radio de 2 km',
+            radius_3km: 'Radio de 3 km',
             colonia: 'Misma colonia',
+            colonia_fuzzy: 'Colonia similar',
             municipio: 'Mismo municipio',
             municipio_ampliado: 'Municipio ampliado',
             estado: 'Referencia estatal (Nuevo León)',

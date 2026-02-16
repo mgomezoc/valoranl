@@ -21,11 +21,22 @@ class OpenAiValuationService
     }
 
     /**
+     * Estimate with full context: priors from DB, local result, and confidence cap.
+     *
      * @param array<string, mixed> $subject
+     * @param array<string, mixed> $priors  PPU stats from municipality (n, p25, p50, p75, avg)
+     * @param array<string, mixed>|null $localResult  Algorithm fallback result if available
      * @return array<string, mixed>|null
      */
-    public function estimateWithoutComparables(array $subject, string $locationScope, int $rawCount, int $usefulCount): ?array
-    {
+    public function estimateWithContext(
+        array $subject,
+        string $locationScope,
+        int $rawCount,
+        int $usefulCount,
+        array $priors = [],
+        ?array $localResult = null,
+        int $confidenceCap = 45,
+    ): ?array {
         $this->lastAttempt = [
             'attempted' => false,
             'status' => 'not_called',
@@ -55,25 +66,30 @@ class OpenAiValuationService
         $maxTokens = (int) env('OPENAI_VALUATION_MAX_TOKENS', 900);
         $timeoutSeconds = (int) env('OPENAI_VALUATION_TIMEOUT', 15);
 
+        // Build constraints from priors
+        $constraints = $this->buildConstraints($subject, $priors, $confidenceCap);
+
         $systemPrompt = $this->buildSystemPrompt();
-
-        log_message('info', 'OpenAI valuation request started. model={model} scope={scope} found={found} used={used}', [
-            'model' => $model,
-            'scope' => $locationScope,
-            'found' => $rawCount,
-            'used' => $usefulCount,
-        ]);
-
         $userPayload = $this->buildUserPayload(
             subject: $subject,
             locationScope: $locationScope,
             rawCount: $rawCount,
             usefulCount: $usefulCount,
+            priors: $priors,
+            localResult: $localResult,
+            constraints: $constraints,
         );
 
-        log_message('info', 'OpenAI valuation prompt payload. model={model} system={systemPrompt} user={userPayload}', [
+        log_message('info', 'OpenAI valuation request started. model={model} scope={scope} found={found} used={used} cap={cap}', [
             'model' => $model,
-            'systemPrompt' => $systemPrompt,
+            'scope' => $locationScope,
+            'found' => $rawCount,
+            'used' => $usefulCount,
+            'cap' => $confidenceCap,
+        ]);
+
+        log_message('info', 'OpenAI valuation prompt payload. model={model} user={userPayload}', [
+            'model' => $model,
             'userPayload' => json_encode($userPayload, JSON_UNESCAPED_UNICODE),
         ]);
 
@@ -113,10 +129,6 @@ class OpenAiValuationService
             $this->lastAttempt['detail'] = $exception->getMessage();
 
             log_message('error', 'OpenAI valuation request failed: {message}', ['message' => $exception->getMessage()]);
-            log_message('info', 'OpenAI valuation request completed with status={status} detail={detail}', [
-                'status' => $this->lastAttempt['status'],
-                'detail' => (string) $this->lastAttempt['detail'],
-            ]);
 
             return null;
         }
@@ -131,10 +143,6 @@ class OpenAiValuationService
             log_message('error', 'OpenAI valuation response status {status}: {detail}', [
                 'status' => $statusCode,
                 'detail' => $errorDetail !== '' ? $errorDetail : 'no-error-detail',
-            ]);
-            log_message('info', 'OpenAI valuation request completed with status={status} detail={detail}', [
-                'status' => $this->lastAttempt['status'],
-                'detail' => (string) $this->lastAttempt['detail'],
             ]);
 
             return null;
@@ -161,6 +169,7 @@ class OpenAiValuationService
             return null;
         }
 
+        // Extract and clamp values against constraints
         $estimatedValue = $this->normalizeMoney($parsed['estimated_value'] ?? null);
         $estimatedLow = $this->normalizeMoney($parsed['estimated_low'] ?? null);
         $estimatedHigh = $this->normalizeMoney($parsed['estimated_high'] ?? null);
@@ -171,19 +180,33 @@ class OpenAiValuationService
             return null;
         }
 
-        $confidenceScore = (int) ($parsed['confidence_score'] ?? 18);
-        $confidenceScore = max(5, min(45, $confidenceScore));
+        // Clamp values to constraints
+        $estimatedValue = max($constraints['value_min'], min($constraints['value_max'], $estimatedValue));
+        $estimatedLow = max($constraints['value_min'], min($constraints['value_max'], $estimatedLow));
+        $estimatedHigh = max($constraints['value_min'], min($constraints['value_max'], $estimatedHigh));
 
-        $confidenceReasons = $this->normalizeStringArray($parsed['confidence_reasons'] ?? []);
-        $humanSteps = $this->normalizeStringArray($parsed['human_steps'] ?? []);
-        $advisorSteps = $this->normalizeStringArray($parsed['advisor_detail_steps'] ?? []);
-        $aiDisclaimer = trim((string) ($parsed['ai_disclaimer'] ?? 'Estimación orientativa generada con IA por falta de comparables locales.'));
+        // Clamp confidence to cap
+        $confidenceScore = (int) ($parsed['confidence_score'] ?? 18);
+        $confidenceScore = max(5, min($confidenceCap, $confidenceScore));
+
+        // Clamp PPU
         $rawEstimatedPpu = $parsed['estimated_value_per_m2'] ?? null;
         $estimatedPpu = $this->normalizePpu($rawEstimatedPpu);
 
         if ($estimatedPpu === null && isset($subject['area_construction_m2']) && (float) $subject['area_construction_m2'] > 0) {
             $estimatedPpu = $this->normalizePpu($estimatedValue / (float) $subject['area_construction_m2']);
         }
+
+        // Clamp PPU to constraint range
+        if ($estimatedPpu !== null) {
+            $estimatedPpu = max($constraints['ppu_min'], min($constraints['ppu_max'], $estimatedPpu));
+            $estimatedPpu = round($estimatedPpu / 10) * 10;
+        }
+
+        $confidenceReasons = $this->normalizeStringArray($parsed['confidence_reasons'] ?? []);
+        $humanSteps = $this->normalizeStringArray($parsed['human_steps'] ?? []);
+        $advisorSteps = $this->normalizeStringArray($parsed['advisor_detail_steps'] ?? []);
+        $aiDisclaimer = trim((string) ($parsed['ai_disclaimer'] ?? 'Estimación orientativa generada con IA por falta de comparables locales.'));
         $methodologySummary = trim((string) ($parsed['methodology_summary'] ?? ''));
         $appliedAdjustments = $this->normalizeAdjustments($parsed['applied_adjustments'] ?? []);
 
@@ -194,6 +217,9 @@ class OpenAiValuationService
                 'Este resultado es orientativo y de baja confiabilidad.',
             ];
         }
+
+        // Add cap reason
+        $confidenceReasons[] = sprintf('Confianza limitada a %d (cap por evidencia insuficiente).', $confidenceCap);
 
         if ($humanSteps === []) {
             $humanSteps = [
@@ -206,8 +232,8 @@ class OpenAiValuationService
         if ($advisorSteps === []) {
             $advisorSteps = [
                 sprintf('1) Muestra local insuficiente (%d/%d).', $rawCount, $usefulCount),
-                '2) Se consultó motor de IA con datos del sujeto y restricción de baja confianza.',
-                sprintf('3) Valor estimado IA: $%s MXN.', number_format($estimatedValue, 0)),
+                '2) Se consultó motor de IA con datos del sujeto, priors de mercado y restricciones de confianza.',
+                sprintf('3) Valor estimado IA: $%s MXN (clamped a constraints).', number_format($estimatedValue, 0)),
             ];
         }
 
@@ -216,14 +242,12 @@ class OpenAiValuationService
         $this->lastAttempt['status'] = 'success';
         $this->lastAttempt['detail'] = $requestId;
 
-        log_message('info', 'OpenAI valuation request completed with status={status} request_id={requestId} estimated_value={estimatedValue} confidence={confidence} ppu={ppu} raw_ppu={rawPpu} adjustments={adjustments}', [
+        log_message('info', 'OpenAI valuation completed. status={status} request_id={requestId} value={value} confidence={confidence} ppu={ppu}', [
             'status' => $this->lastAttempt['status'],
             'requestId' => $requestId ?? 'n/a',
-            'estimatedValue' => (string) $estimatedValue,
+            'value' => (string) $estimatedValue,
             'confidence' => (string) $confidenceScore,
             'ppu' => $estimatedPpu !== null ? (string) $estimatedPpu : 'n/a',
-            'rawPpu' => $rawEstimatedPpu !== null ? (string) $rawEstimatedPpu : 'n/a',
-            'adjustments' => (string) count($appliedAdjustments),
         ]);
 
         return [
@@ -269,16 +293,19 @@ class OpenAiValuationService
                     'request_id' => $requestId,
                     'attempted' => true,
                     'status' => $this->lastAttempt['status'],
+                    'confidence_cap' => $confidenceCap,
+                    'constraints_applied' => $constraints,
                     'input_summary' => sprintf(
-                        'IA usó: tipo=%s, municipio=%s, colonia=%s, construcción=%s m², edad=%d años, conservación=%d/10, y resultado de búsqueda local (%d encontrados, %d útiles).',
+                        'IA usó: tipo=%s, municipio=%s, colonia=%s, construcción=%s m², edad=%d años, conservación=%d/10, priors(n=%d, p50=$%s/m²), cap=%d.',
                         (string) ($subject['property_type'] ?? 'N/D'),
                         (string) ($subject['municipality'] ?? 'N/D'),
                         (string) ($subject['colony'] ?? 'N/D'),
                         number_format((float) ($subject['area_construction_m2'] ?? 0), 2),
                         (int) ($subject['age_years'] ?? 0),
                         (int) ($subject['conservation_level'] ?? 0),
-                        $rawCount,
-                        $usefulCount,
+                        (int) ($priors['n'] ?? 0),
+                        number_format((float) ($priors['p50_ppu'] ?? 0), 0),
+                        $confidenceCap,
                     ),
                     'applied_adjustments' => $appliedAdjustments,
                 ],
@@ -293,6 +320,149 @@ class OpenAiValuationService
     {
         return $this->lastAttempt;
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Constraints & prompt building
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Build value/PPU constraints from priors for clamping.
+     *
+     * @return array{ppu_min: float, ppu_max: float, value_min: float, value_max: float, confidence_cap: int}
+     */
+    private function buildConstraints(array $subject, array $priors, int $confidenceCap): array
+    {
+        $ppuMin = max(5000.0, ((float) ($priors['p25_ppu'] ?? 5000)) * 0.7);
+        $ppuMax = min(80000.0, ((float) ($priors['p75_ppu'] ?? 80000)) * 1.3);
+
+        // Ensure min < max
+        if ($ppuMin >= $ppuMax) {
+            $ppuMin = 5000.0;
+            $ppuMax = 80000.0;
+        }
+
+        $area = max(1.0, (float) ($subject['area_construction_m2'] ?? 1));
+
+        return [
+            'ppu_min' => round($ppuMin, 0),
+            'ppu_max' => round($ppuMax, 0),
+            'value_min' => round($ppuMin * $area * 0.8, -3),
+            'value_max' => round($ppuMax * $area * 1.2, -3),
+            'confidence_cap' => $confidenceCap,
+        ];
+    }
+
+    private function buildSystemPrompt(): string
+    {
+        return implode("\n", [
+            'Eres un valuador inmobiliario certificado en México, especialista en mercado residencial de Nuevo León.',
+            '',
+            'Reglas estrictas:',
+            '1. Devuelve EXCLUSIVAMENTE un JSON válido. Sin markdown, sin texto adicional, sin bloques de código.',
+            '2. NO inventes comparables, direcciones ni fuentes de datos.',
+            '3. Si no hay comparables (n=0): estima usando costo de reposición + terreno + depreciación + negociación, ÚNICAMENTE con los priors proporcionados.',
+            '4. El campo confidence_score DEBE ser <= al confidence_cap proporcionado en constraints.',
+            '5. Los valores estimados deben estar dentro de los rangos value_min/value_max de constraints.',
+            '6. El PPU estimado (estimated_value_per_m2) debe estar dentro de ppu_min/ppu_max de constraints.',
+            '7. Todos los montos en MXN. Redondea el valor final a miles.',
+            '8. Sé conservador: ante la duda, usa el rango bajo de los priors.',
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildUserPayload(
+        array $subject,
+        string $locationScope,
+        int $rawCount,
+        int $usefulCount,
+        array $priors,
+        ?array $localResult,
+        array $constraints,
+    ): array {
+        $payload = [
+            'task' => 'Estimar valor de mercado de un inmueble residencial en Nuevo León, México.',
+            'subject' => [
+                'property_type' => $subject['property_type'] ?? 'casa',
+                'municipality' => $subject['municipality'] ?? '',
+                'colony' => $subject['colony'] ?? '',
+                'area_construction_m2' => $subject['area_construction_m2'] ?? 0,
+                'area_land_m2' => $subject['area_land_m2'],
+                'age_years' => $subject['age_years'] ?? 0,
+                'conservation_level' => $subject['conservation_level'] ?? 7,
+                'bedrooms' => $subject['bedrooms'],
+                'bathrooms' => $subject['bathrooms'],
+                'half_bathrooms' => $subject['half_bathrooms'],
+                'parking' => $subject['parking'],
+            ],
+            'comparable_summary' => [
+                'n_found' => $rawCount,
+                'n_used' => $usefulCount,
+                'scope_searched' => $locationScope,
+                'note' => 'No hay comparables directos útiles. Usa los priors de mercado proporcionados.',
+            ],
+            'constraints' => [
+                'do_not_invent_comparables' => true,
+                'ppu_min' => $constraints['ppu_min'],
+                'ppu_max' => $constraints['ppu_max'],
+                'value_min' => $constraints['value_min'],
+                'value_max' => $constraints['value_max'],
+                'confidence_cap' => $constraints['confidence_cap'],
+            ],
+            'output_schema' => [
+                'estimated_value' => 'number (MXN, rounded to thousands)',
+                'estimated_low' => 'number (MXN)',
+                'estimated_high' => 'number (MXN)',
+                'estimated_value_per_m2' => 'number (PPU in MXN/m²)',
+                'applied_adjustments' => [['factor' => 'string', 'percentage' => 'number', 'monetary_impact' => 'number', 'rationale' => 'string']],
+                'methodology_summary' => 'string',
+                'confidence_score' => 'integer (must be <= confidence_cap)',
+                'confidence_reasons' => ['string'],
+                'human_steps' => ['string'],
+                'advisor_detail_steps' => ['string'],
+                'ai_disclaimer' => 'string',
+            ],
+        ];
+
+        // Add geo if available
+        if (isset($subject['lat']) && $subject['lat'] !== null) {
+            $payload['subject']['lat'] = $subject['lat'];
+            $payload['subject']['lng'] = $subject['lng'];
+        }
+        if (isset($subject['address']) && $subject['address'] !== '') {
+            $payload['subject']['address'] = $subject['address'];
+        }
+
+        // Add priors if available
+        if (($priors['n'] ?? 0) > 0) {
+            $payload['comparable_summary']['market_priors'] = [
+                'n_listings_municipio' => $priors['n'],
+                'ppu_p25' => $priors['p25_ppu'] ?? null,
+                'ppu_median' => $priors['p50_ppu'] ?? null,
+                'ppu_p75' => $priors['p75_ppu'] ?? null,
+                'ppu_avg' => $priors['avg_ppu'] ?? null,
+                'scope' => $priors['scope'] ?? 'municipio',
+            ];
+        }
+
+        // Add local result for reference
+        if ($localResult !== null) {
+            $payload['local_result'] = [
+                'estimated_value' => $localResult['estimated_value'] ?? null,
+                'ppu_used' => $localResult['ppu_base'] ?? null,
+                'range_low' => $localResult['estimated_low'] ?? null,
+                'range_high' => $localResult['estimated_high'] ?? null,
+                'method' => $localResult['calc_breakdown']['method'] ?? 'synthetic_local_fallback',
+            ];
+        }
+
+        return $payload;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Configuration helpers
+    // ═══════════════════════════════════════════════════════════════
 
     private function isEnabled(): bool
     {
@@ -334,6 +504,10 @@ class OpenAiValuationService
         return trim($normalized);
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    //  Response parsing & normalization
+    // ═══════════════════════════════════════════════════════════════
+
     private function extractApiErrorDetail(string $responseBody): string
     {
         $decoded = json_decode($responseBody, true);
@@ -364,91 +538,6 @@ class OpenAiValuationService
         }
 
         return implode(' | ', $parts);
-    }
-
-    private function buildSystemPrompt(): string
-    {
-        return 'Actúa como valuador inmobiliario certificado en México, especialista en mercado residencial de Nuevo León. Devuelve exclusivamente JSON válido, sin markdown ni texto adicional.';
-    }
-
-    /**
-     * @param array<string, mixed> $subject
-     * @return array<string, mixed>
-     */
-    private function buildUserPayload(array $subject, string $locationScope, int $rawCount, int $usefulCount): array
-    {
-        return [
-            'task' => 'Calcular una estimación de valor de mercado para una vivienda con base técnica, usando enfoque comparativo y ajustes explicados.',
-            'context' => [
-                'location_scope_checked' => $locationScope,
-                'records_found' => $rawCount,
-                'records_used' => $usefulCount,
-                'note' => 'No hay comparables locales útiles de colonia/municipio; debes emitir una estimación de apoyo de baja confianza sin inventar comparables.',
-            ],
-            'subject' => $subject,
-            'calculation_instructions' => [
-                'Estima un valor por m² de construcción para el contexto local.',
-                'Multiplica por el área de construcción del sujeto para un valor base.',
-                'Aplica ajustes porcentuales por atributos relevantes (estado, equipamiento, ubicación) y explica su impacto monetario.',
-                'Entrega rango conservador, rango competitivo y valor recomendado.',
-            ],
-            'constraints' => [
-                'Devuelve montos en MXN.',
-                'No inventes comparables puntuales ni direcciones.',
-                'Mantén baja confianza por insuficiencia de muestra local.',
-            ],
-            'output_schema' => [
-                'estimated_value' => 'number',
-                'estimated_low' => 'number',
-                'estimated_high' => 'number',
-                'estimated_value_per_m2' => 'number',
-                'applied_adjustments' => [[
-                    'factor' => 'string',
-                    'percentage' => 'number',
-                    'monetary_impact' => 'number',
-                    'rationale' => 'string',
-                ]],
-                'methodology_summary' => 'string',
-                'confidence_score' => 'integer_0_100',
-                'confidence_reasons' => ['string'],
-                'human_steps' => ['string'],
-                'advisor_detail_steps' => ['string'],
-                'ai_disclaimer' => 'string',
-            ],
-        ];
-    }
-
-    /**
-     * @param mixed $items
-     * @return array<int, array<string, mixed>>
-     */
-    private function normalizeAdjustments(mixed $items): array
-    {
-        if (! is_array($items)) {
-            return [];
-        }
-
-        $result = [];
-
-        foreach ($items as $item) {
-            if (! is_array($item)) {
-                continue;
-            }
-
-            $factor = trim((string) ($item['factor'] ?? ''));
-            if ($factor === '') {
-                continue;
-            }
-
-            $result[] = [
-                'factor' => $factor,
-                'percentage' => (float) ($item['percentage'] ?? 0),
-                'monetary_impact' => (float) ($item['monetary_impact'] ?? 0),
-                'rationale' => trim((string) ($item['rationale'] ?? '')),
-            ];
-        }
-
-        return $result;
     }
 
     /**
@@ -495,13 +584,45 @@ class OpenAiValuationService
             return null;
         }
 
-        // Keep PPU precision by tens (not thousands) and clamp to plausible NL range.
         $number = round($number / 10) * 10;
-        if ($number < 5000 || $number > 80000) {
+        if ($number < 3000 || $number > 100000) {
             return null;
         }
 
         return $number;
+    }
+
+    /**
+     * @param mixed $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeAdjustments(mixed $items): array
+    {
+        if (! is_array($items)) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $factor = trim((string) ($item['factor'] ?? ''));
+            if ($factor === '') {
+                continue;
+            }
+
+            $result[] = [
+                'factor' => $factor,
+                'percentage' => (float) ($item['percentage'] ?? 0),
+                'monetary_impact' => (float) ($item['monetary_impact'] ?? 0),
+                'rationale' => trim((string) ($item['rationale'] ?? '')),
+            ];
+        }
+
+        return $result;
     }
 
     /**

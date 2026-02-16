@@ -32,46 +32,45 @@ class ValuationService
             conservationLevel: $subject['conservation_level'],
         );
 
-        $areaMin = $subject['area_construction_m2'] * 0.7;
-        $areaMax = $subject['area_construction_m2'] * 1.3;
+        // 1. Run scope ladder to find comparables
+        [$prepared, $locationScope, $rawCount] = $this->runScopeLadder($subject);
+        $usefulCount = count($prepared);
 
-        $locationScope = 'colonia';
-        $rawComparables = $this->getComparables($subject, $areaMin, $areaMax, useColony: true);
-        $prepared = $this->prepareComparables($rawComparables, $subject, $locationScope);
+        // 2. Gather market priors (always — used for OpenAI context and confidence)
+        $priors = $this->gatherMarketPriors($subject);
 
+        // 3. No usable comparables → fallback
         if ($prepared === []) {
-            $locationScope = 'municipio';
-            $rawComparables = $this->getComparables($subject, $areaMin, $areaMax, useColony: false);
-            $prepared = $this->prepareComparables($rawComparables, $subject, $locationScope);
-        }
+            $confidenceCap = $this->buildConfidenceCap(0, 1.0, $locationScope, null, $subject);
 
-        $comparablesRawCount = count($rawComparables);
-        $comparablesUsefulCount = count($prepared);
-
-        if ($prepared === []) {
             $algorithmFallback = $this->buildSyntheticFallbackEstimate(
                 subject: $subject,
                 locationScope: $locationScope,
-                rawCount: $comparablesRawCount,
-                usefulCount: $comparablesUsefulCount,
+                rawCount: $rawCount,
+                usefulCount: 0,
                 openAiAttemptMeta: ['attempted' => false, 'status' => 'not_called', 'detail' => null],
             );
 
-            $openAiFallback = $this->openAiValuationService->estimateWithoutComparables(
+            $openAiFallback = $this->openAiValuationService->estimateWithContext(
                 subject: $subject,
                 locationScope: $locationScope,
-                rawCount: $comparablesRawCount,
-                usefulCount: $comparablesUsefulCount,
+                rawCount: $rawCount,
+                usefulCount: 0,
+                priors: $priors,
+                localResult: $algorithmFallback,
+                confidenceCap: $confidenceCap,
             );
 
             if (is_array($openAiFallback)) {
                 return $this->buildAiAugmentedFallbackEstimate(
                     subject: $subject,
                     locationScope: $locationScope,
-                    rawCount: $comparablesRawCount,
-                    usefulCount: $comparablesUsefulCount,
+                    rawCount: $rawCount,
+                    usefulCount: 0,
                     algorithmFallback: $algorithmFallback,
                     openAiFallback: $openAiFallback,
+                    priors: $priors,
+                    confidenceCap: $confidenceCap,
                 );
             }
 
@@ -87,7 +86,7 @@ class ValuationService
             return $algorithmFallback;
         }
 
-        // Compute per-comparable homologation factors
+        // 4. Normal valuation with comparables
         $homologated = $this->homologateComparables($prepared, $subject, $subjectDepr);
 
         $ppusHomologados = array_column($homologated, 'ppu_homologado');
@@ -103,7 +102,10 @@ class ValuationService
         $confidence = $this->buildConfidence($prepared, $locationScope, $subject);
 
         usort($homologated, static fn(array $a, array $b): int => $b['similarity_score'] <=> $a['similarity_score']);
-        $topComparables = array_slice($homologated, 0, 10);
+        $topComparables = array_slice($homologated, 0, 5);
+
+        $areaMin = round($subject['area_construction_m2'] * 0.4, 2);
+        $areaMax = round($subject['area_construction_m2'] * 2.5, 2);
 
         $result = [
             'ok' => true,
@@ -130,21 +132,21 @@ class ValuationService
                     'municipality' => $subject['municipality'],
                     'colony' => $subject['colony'],
                     'area_range_m2' => [
-                        'min' => round($areaMin, 2),
-                        'max' => round($areaMax, 2),
+                        'min' => $areaMin,
+                        'max' => $areaMax,
                     ],
                 ],
                 'scope_used' => $locationScope,
-                'used_properties_database' => $comparablesUsefulCount > 0,
+                'used_properties_database' => $usefulCount > 0,
                 'data_origin' => [
                     'source' => 'listings',
                     'source_label' => 'Base interna de propiedades publicadas (tabla listings).',
-                    'used_for_calculation' => $comparablesUsefulCount > 0,
-                    'records_found' => $comparablesRawCount,
-                    'records_used' => $comparablesUsefulCount,
+                    'used_for_calculation' => $usefulCount > 0,
+                    'records_found' => $rawCount,
+                    'records_used' => $usefulCount,
                 ],
-                'comparables_raw' => $comparablesRawCount,
-                'comparables_useful' => $comparablesUsefulCount,
+                'comparables_raw' => $rawCount,
+                'comparables_useful' => $usefulCount,
                 'ppu_stats' => [
                     'ppu_promedio' => round($ppuPromedio, 2),
                     'ppu_aplicado' => $ppuAplicado,
@@ -164,8 +166,8 @@ class ValuationService
                     'estimated_high' => 'ROUNDUP(PPU_aplicado × 1.1 × m²_construcción, -3)',
                 ],
                 'human_steps' => $this->buildHumanSteps(
-                    $comparablesRawCount,
-                    $comparablesUsefulCount,
+                    $rawCount,
+                    $usefulCount,
                     $locationScope,
                     $ppuPromedio,
                     $ppuAplicado,
@@ -173,8 +175,8 @@ class ValuationService
                     $estimatedValue,
                 ),
                 'advisor_detail_steps' => $this->buildAdvisorSteps(
-                    $comparablesUsefulCount,
-                    $comparablesRawCount,
+                    $usefulCount,
+                    $rawCount,
                     $locationScope,
                     $ppuPromedio,
                     $ppuAplicado,
@@ -201,6 +203,10 @@ class ValuationService
         return $result;
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    //  Input normalization
+    // ═══════════════════════════════════════════════════════════════
+
     /**
      * @return array<string, mixed>
      */
@@ -216,6 +222,7 @@ class ValuationService
             'property_type' => trim((string) ($input['property_type'] ?? '')),
             'municipality' => trim((string) ($input['municipality'] ?? '')),
             'colony' => trim((string) ($input['colony'] ?? '')),
+            'address' => trim((string) ($input['address'] ?? '')),
             'area_construction_m2' => max(0.0, (float) ($input['area_construction_m2'] ?? 0)),
             'area_land_m2' => isset($input['area_land_m2']) && $input['area_land_m2'] !== '' ? max(0.0, (float) $input['area_land_m2']) : null,
             'bedrooms' => isset($input['bedrooms']) && $input['bedrooms'] !== '' ? max(0, (int) $input['bedrooms']) : null,
@@ -235,34 +242,156 @@ class ValuationService
         ];
     }
 
-    private const COMPARABLE_SELECT = 'id, url, title, property_type, municipality, colony, area_construction_m2, area_land_m2, age_years, bedrooms, bathrooms, parking, lat, lng, price_amount, currency';
+    // ═══════════════════════════════════════════════════════════════
+    //  Scope ladder — progressive comparable search
+    // ═══════════════════════════════════════════════════════════════
+
+    private const COMPARABLE_SELECT = 'id, url, title, property_type, municipality, colony, area_construction_m2, area_land_m2, age_years, bedrooms, bathrooms, half_bathrooms, parking, lat, lng, price_amount, currency';
+
+    private const MIN_USEFUL_COMPARABLES = 3;
 
     /**
-     * @param array<string, mixed> $subject
+     * Try increasingly broad scopes until we get enough comparables.
+     *
+     * @return array{0: array<int, array<string, mixed>>, 1: string, 2: int}
+     */
+    private function runScopeLadder(array $subject): array
+    {
+        $hasGeo = $subject['lat'] !== null && $subject['lng'] !== null;
+
+        $scopes = $hasGeo
+            ? ['radius_1km', 'radius_2km', 'radius_3km', 'colonia', 'municipio']
+            : ['colonia', 'colonia_fuzzy', 'municipio'];
+
+        $bestPrepared = [];
+        $bestScope = end($scopes);
+        $bestRawCount = 0;
+
+        foreach ($scopes as $scope) {
+            $raw = $this->searchByScope($subject, $scope);
+            $prepared = $this->prepareComparables($raw, $subject, $scope);
+
+            if (count($prepared) >= self::MIN_USEFUL_COMPARABLES) {
+                return [$prepared, $scope, count($raw)];
+            }
+
+            // Keep the best result found so far (most comparables)
+            if (count($prepared) > count($bestPrepared)) {
+                $bestPrepared = $prepared;
+                $bestScope = $scope;
+                $bestRawCount = count($raw);
+            }
+        }
+
+        return [$bestPrepared, $bestScope, $bestRawCount];
+    }
+
+    /**
+     * Execute a single-scope comparable search.
+     *
      * @return array<int, array<string, mixed>>
      */
-    private function getComparables(array $subject, float $areaMin, float $areaMax, bool $useColony): array
+    private function searchByScope(array $subject, string $scope): array
     {
         $builder = $this->listingModel->builder();
         $builder->select(self::COMPARABLE_SELECT)
             ->where('status', 'active')
             ->where('price_type', 'sale')
             ->where('property_type', $subject['property_type'])
-            ->where('municipality', $subject['municipality'])
             ->where('price_amount IS NOT NULL', null, false)
             ->where('area_construction_m2 IS NOT NULL', null, false)
-            ->where('area_construction_m2 >', 0)
-            ->where('area_construction_m2 >=', $areaMin)
-            ->where('area_construction_m2 <=', $areaMax)
-            ->orderBy('updated_at', 'DESC')
-            ->limit(200);
+            ->where('area_construction_m2 >', 0);
 
-        if ($useColony) {
-            $builder->where('colony', $subject['colony']);
+        // Wide area range — similarity scoring handles the rest
+        $areaMin = $subject['area_construction_m2'] * 0.4;
+        $areaMax = $subject['area_construction_m2'] * 2.5;
+        $builder->where('area_construction_m2 >=', $areaMin)
+            ->where('area_construction_m2 <=', $areaMax);
+
+        switch ($scope) {
+            case 'radius_1km':
+                $this->applyBoundingBox($builder, $subject['lat'], $subject['lng'], 1.0);
+                break;
+            case 'radius_2km':
+                $this->applyBoundingBox($builder, $subject['lat'], $subject['lng'], 2.0);
+                break;
+            case 'radius_3km':
+                $this->applyBoundingBox($builder, $subject['lat'], $subject['lng'], 3.0);
+                break;
+            case 'colonia':
+                $builder->where('municipality', $subject['municipality'])
+                    ->where('colony', $subject['colony']);
+                break;
+            case 'colonia_fuzzy':
+                $builder->where('municipality', $subject['municipality']);
+                $this->applyFuzzyColony($builder, $subject['colony']);
+                break;
+            case 'municipio':
+                $builder->where('municipality', $subject['municipality']);
+                break;
         }
+
+        $builder->orderBy('updated_at', 'DESC')->limit(200);
 
         return $builder->get()->getResultArray();
     }
+
+    /**
+     * Apply bounding-box pre-filter for radius search.
+     * At NL latitude (~25.6°): 1° lat ≈ 111 km, 1° lng ≈ 100 km.
+     */
+    private function applyBoundingBox(object $builder, float $lat, float $lng, float $radiusKm): void
+    {
+        $latDelta = $radiusKm / 111.0;
+        $lngDelta = $radiusKm / (111.0 * cos(deg2rad($lat)));
+
+        $builder->where('lat IS NOT NULL', null, false)
+            ->where('lng IS NOT NULL', null, false)
+            ->where('lat >=', $lat - $latDelta)
+            ->where('lat <=', $lat + $latDelta)
+            ->where('lng >=', $lng - $lngDelta)
+            ->where('lng <=', $lng + $lngDelta);
+    }
+
+    /**
+     * Fuzzy colony match: split colony name into tokens and LIKE-match any.
+     */
+    private function applyFuzzyColony(object $builder, string $colony): void
+    {
+        $normalized = $this->normalizeForSearch($colony);
+        $tokens = array_filter(
+            explode(' ', $normalized),
+            static fn(string $t): bool => mb_strlen($t) >= 3,
+        );
+
+        if ($tokens === []) {
+            $builder->where('colony', $colony);
+            return;
+        }
+
+        $builder->groupStart();
+        foreach ($tokens as $token) {
+            $builder->orLike('colony', $token, 'both');
+        }
+        $builder->groupEnd();
+    }
+
+    /**
+     * Normalize text for search: uppercase, strip accents, alphanum only.
+     */
+    private function normalizeForSearch(string $text): string
+    {
+        $text = mb_strtoupper(trim($text));
+        $accents = ['Á' => 'A', 'É' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ú' => 'U', 'Ñ' => 'N', 'Ü' => 'U'];
+        $text = strtr($text, $accents);
+        $text = preg_replace('/[^A-Z0-9\s]/', '', $text);
+
+        return preg_replace('/\s+/', ' ', trim($text));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Comparable preparation & similarity
+    // ═══════════════════════════════════════════════════════════════
 
     /**
      * @param array<int, array<string, mixed>> $rows
@@ -302,6 +431,7 @@ class ValuationService
                 'age_years' => isset($row['age_years']) && $row['age_years'] !== null ? (int) $row['age_years'] : null,
                 'bedrooms' => $row['bedrooms'] !== null ? (int) $row['bedrooms'] : null,
                 'bathrooms' => $row['bathrooms'] !== null ? (float) $row['bathrooms'] : null,
+                'half_bathrooms' => isset($row['half_bathrooms']) && $row['half_bathrooms'] !== null ? (int) $row['half_bathrooms'] : null,
                 'parking' => $row['parking'] !== null ? (int) $row['parking'] : null,
                 'ppu_m2' => $ppu,
                 'distance_km' => $distanceKm,
@@ -374,6 +504,8 @@ class ValuationService
     }
 
     /**
+     * Similarity score: distance + area + rooms + age.
+     *
      * @param array<string, mixed> $subject
      * @param array<string, mixed> $row
      */
@@ -385,18 +517,37 @@ class ValuationService
 
         $bedsNorm = $this->featureDiffNorm($subject['bedrooms'], $row['bedrooms'] ?? null, 5);
         $bathsNorm = $this->featureDiffNorm($subject['bathrooms'], $row['bathrooms'] ?? null, 4);
+        $halfBathsNorm = $this->featureDiffNorm($subject['half_bathrooms'], $row['half_bathrooms'] ?? null, 3);
         $parkingNorm = $this->featureDiffNorm($subject['parking'], $row['parking'] ?? null, 4);
 
-        $distanceNorm = $distanceKm !== null ? min(1.0, $distanceKm / 20.0) : null;
+        // Age similarity: normalized difference capped at 30 years
+        $ageNorm = 0.5; // default when missing
+        $subjectAge = $subject['age_years'] ?? null;
+        $rowAge = isset($row['age_years']) && $row['age_years'] !== null ? (int) $row['age_years'] : null;
+        if ($subjectAge !== null && $rowAge !== null) {
+            $ageNorm = min(1.0, abs($subjectAge - $rowAge) / 30.0);
+        }
 
-        $weights = $distanceNorm !== null
-            ? ['distance' => 0.40, 'area' => 0.25, 'rooms' => 0.20, 'bathParking' => 0.15]
-            : ['distance' => 0.00, 'area' => 0.50, 'rooms' => 0.30, 'bathParking' => 0.20];
+        $distanceNorm = $distanceKm !== null ? min(1.0, $distanceKm / 15.0) : null;
 
-        $penalty = ($weights['distance'] * ($distanceNorm ?? 0.0))
-            + ($weights['area'] * $areaNorm)
-            + ($weights['rooms'] * $bedsNorm)
-            + ($weights['bathParking'] * (($bathsNorm + $parkingNorm) / 2));
+        // Composite rooms penalty
+        $roomsComposite = ($bedsNorm * 0.50)
+            + ($bathsNorm * 0.25)
+            + ($halfBathsNorm * 0.10)
+            + ($parkingNorm * 0.15);
+
+        if ($distanceNorm !== null) {
+            // With geo: distance is the strongest signal
+            $penalty = (0.35 * $distanceNorm)
+                + (0.25 * $areaNorm)
+                + (0.25 * $roomsComposite)
+                + (0.15 * $ageNorm);
+        } else {
+            // Without geo: area and features matter more
+            $penalty = (0.40 * $areaNorm)
+                + (0.35 * $roomsComposite)
+                + (0.25 * $ageNorm);
+        }
 
         return max(0.05, round(1 - $penalty, 4));
     }
@@ -426,13 +577,17 @@ class ValuationService
         return $earthRadiusKm * (2 * atan2(sqrt($a), sqrt(1 - $a)));
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    //  Outlier removal
+    // ═══════════════════════════════════════════════════════════════
+
     /**
      * @param array<int, array<string, mixed>> $comparables
      * @return array<int, array<string, mixed>>
      */
     private function removeOutliersByIqr(array $comparables): array
     {
-        if (count($comparables) < 8) {
+        if (count($comparables) < 6) {
             return $comparables;
         }
 
@@ -483,6 +638,10 @@ class ValuationService
         return ((1 - $weight) * (float) $values[$floor]) + ($weight * (float) $values[$ceil]);
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    //  Confidence scoring with strict caps
+    // ═══════════════════════════════════════════════════════════════
+
     /**
      * @param array<int, array<string, mixed>> $comparables
      * @param array<string, mixed> $subject
@@ -491,43 +650,157 @@ class ValuationService
     private function buildConfidence(array $comparables, string $locationScope, array $subject): array
     {
         $n = count($comparables);
-        $baseN = min(1.0, $n / 20);
-
         $ppus = array_column($comparables, 'ppu_m2');
-        $mean = array_sum($ppus) / max(1, count($ppus));
+        $mean = $n > 0 ? array_sum($ppus) / $n : 0;
         $std = $this->stdDev($ppus, $mean);
-        $dispersionRatio = $mean > 0 ? $std / $mean : 1;
-        $baseDispersion = max(0.2, 1 - min(1.0, $dispersionRatio));
+        $cv = $mean > 0 ? $std / $mean : 1.0;
+
+        // Average distance if available
+        $distances = array_filter(
+            array_column($comparables, 'distance_km'),
+            static fn($d) => $d !== null,
+        );
+        $avgDistance = !empty($distances) ? array_sum($distances) / count($distances) : null;
+
+        // Base factors
+        $baseN = min(1.0, $n / 15);
+        $baseDispersion = max(0.2, 1 - min(1.0, $cv));
 
         $baseLocation = match ($locationScope) {
-            'colonia' => 1.0,
-            'municipio' => 0.85,
-            'municipio_ampliado' => 0.75,
+            'radius_1km' => 1.0,
+            'radius_2km' => 0.97,
+            'radius_3km' => 0.93,
+            'colonia' => 0.95,
+            'colonia_fuzzy' => 0.88,
+            'municipio' => 0.80,
             default => 0.60,
         };
 
-        $score = (int) round(100 * $baseN * $baseDispersion * $baseLocation);
-        $score = max(15, min(98, $score));
+        // Feature completeness penalty
+        $completeness = 1.0;
+        if ($subject['lat'] === null || $subject['lng'] === null) {
+            $completeness -= 0.10;
+        }
+        if ($subject['area_land_m2'] === null) {
+            $completeness -= 0.03;
+        }
 
+        $rawScore = (int) round(100 * $baseN * $baseDispersion * $baseLocation * $completeness);
+
+        // Strict cap based on evidence
+        $cap = $this->buildConfidenceCap($n, $cv, $locationScope, $avgDistance, $subject);
+
+        $score = max(10, min($cap, $rawScore));
+
+        // Human-readable reasons
         $reasons = [
-            sprintf('%d comparables útiles.', $n),
-            sprintf('Dispersión %s (σ/μ %.2f).', $dispersionRatio < 0.25 ? 'baja' : ($dispersionRatio < 0.45 ? 'media' : 'alta'), $dispersionRatio),
-            match ($locationScope) {
-                'colonia' => 'Comparables de la misma colonia.',
-                'municipio' => 'Comparables del mismo municipio.',
-                default => 'Comparables del mismo municipio.',
-            },
+            sprintf('%d comparables útiles encontrados.', $n),
+            sprintf(
+                'Dispersión de precios %s (CV: %.2f).',
+                $cv < 0.25 ? 'baja' : ($cv < 0.45 ? 'media' : 'alta'),
+                $cv,
+            ),
+            sprintf('Alcance: %s.', $this->scopeLabel($locationScope)),
         ];
 
-        if ($subject['age_years'] === 0 && !isset($subject['_age_provided'])) {
-            $reasons[] = 'Edad del inmueble no proporcionada (default 0); el resultado puede variar.';
+        if ($avgDistance !== null) {
+            $reasons[] = sprintf('Distancia promedio: %.1f km.', $avgDistance);
+        }
+        if ($subject['lat'] === null || $subject['lng'] === null) {
+            $reasons[] = 'Sin coordenadas; no se pudo ponderar por distancia.';
         }
         if ($subject['area_land_m2'] === null) {
             $reasons[] = 'Sin m² de terreno; factor de superficie no aplicado.';
         }
+        if ($n < 5) {
+            $reasons[] = 'Muestra reducida; resultado orientativo.';
+        }
 
         return ['score' => $score, 'reasons' => $reasons];
     }
+
+    /**
+     * Strict confidence cap based on evidence quality.
+     * Prevents inflated confidence when data is insufficient.
+     */
+    private function buildConfidenceCap(int $n, float $cv, string $locationScope, ?float $avgDistanceKm, array $subject): int
+    {
+        // n=0: max 45 (no evidence)
+        if ($n === 0) {
+            return 45;
+        }
+        // n<3: max 50
+        if ($n < 3) {
+            return 50;
+        }
+        // n<5: max 55
+        if ($n < 5) {
+            return 55;
+        }
+        // n 5-9: depends on dispersion
+        if ($n < 10) {
+            return $cv < 0.25 ? 72 : 65;
+        }
+        // n >= 10: can reach higher based on dispersion + distance
+        if ($cv < 0.25 && $avgDistanceKm !== null && $avgDistanceKm <= 2.0) {
+            return 92;
+        }
+        if ($cv < 0.25) {
+            return 85;
+        }
+        if ($cv < 0.45) {
+            return 78;
+        }
+
+        return 70;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Market priors (for OpenAI context)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Gather PPU statistics at municipality level for priors.
+     *
+     * @return array<string, mixed>
+     */
+    private function gatherMarketPriors(array $subject): array
+    {
+        $ppuRows = $this->listingModel->builder()
+            ->select('(price_amount / area_construction_m2) as ppu')
+            ->where('status', 'active')
+            ->where('price_type', 'sale')
+            ->where('property_type', $subject['property_type'])
+            ->where('municipality', $subject['municipality'])
+            ->where('price_amount IS NOT NULL', null, false)
+            ->where('area_construction_m2 >', 0)
+            ->orderBy('updated_at', 'DESC')
+            ->limit(500)
+            ->get()
+            ->getResultArray();
+
+        $ppuValues = array_map(static fn(array $r): float => (float) $r['ppu'], $ppuRows);
+
+        if ($ppuValues === []) {
+            return ['n' => 0, 'scope' => 'municipio'];
+        }
+
+        sort($ppuValues);
+        $n = count($ppuValues);
+
+        return [
+            'n' => $n,
+            'scope' => 'municipio',
+            'avg_ppu' => round(array_sum($ppuValues) / $n, 0),
+            'p25_ppu' => round($this->percentile($ppuValues, 0.25), 0),
+            'p50_ppu' => round($this->percentile($ppuValues, 0.50), 0),
+            'p75_ppu' => round($this->percentile($ppuValues, 0.75), 0),
+        ];
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Fallback estimates (synthetic + AI augmented)
+    // ═══════════════════════════════════════════════════════════════
 
     /**
      * @param array<string, mixed> $subject
@@ -654,11 +927,11 @@ class ValuationService
         ];
     }
 
-
     /**
      * @param array<string, mixed> $subject
      * @param array<string, mixed> $algorithmFallback
      * @param array<string, mixed> $openAiFallback
+     * @param array<string, mixed> $priors
      * @return array<string, mixed>
      */
     private function buildAiAugmentedFallbackEstimate(
@@ -668,6 +941,8 @@ class ValuationService
         int $usefulCount,
         array $algorithmFallback,
         array $openAiFallback,
+        array $priors = [],
+        int $confidenceCap = 45,
     ): array {
         $rangeSpread = (new \Config\Valuation())->rangeSpread;
 
@@ -679,8 +954,17 @@ class ValuationService
             $aiPpu = (float) $openAiFallback['estimated_value'] / (float) $subject['area_construction_m2'];
         }
 
-        $aiPpu = $this->valuationMath->roundPpu($aiPpu > 0 ? $aiPpu : 18000.0);
+        // Clamp PPU to priors range if available
+        $ppuMin = max(5000, ($priors['p25_ppu'] ?? 5000) * 0.7);
+        $ppuMax = min(80000, ($priors['p75_ppu'] ?? 80000) * 1.3);
+        $aiPpu = max($ppuMin, min($ppuMax, $aiPpu > 0 ? $aiPpu : 18000.0));
+        $aiPpu = $this->valuationMath->roundPpu($aiPpu);
+
         $aiAdjustedValue = $this->valuationMath->roundValueToThousands($aiPpu * (float) $subject['area_construction_m2']);
+
+        // Clamp confidence
+        $aiConfidence = (int) ($openAiFallback['confidence_score'] ?? 18);
+        $aiConfidence = max(5, min($confidenceCap, $aiConfidence));
 
         $result = $openAiFallback;
         $result['message'] = 'Sin comparables locales, se muestran dos referencias: algoritmo base y cálculo potenciado con OpenAI.';
@@ -688,8 +972,10 @@ class ValuationService
         $result['estimated_low'] = $this->valuationMath->roundValueToThousands($aiAdjustedValue * (1 - $rangeSpread));
         $result['estimated_high'] = $this->valuationMath->roundValueToThousands($aiAdjustedValue * (1 + $rangeSpread));
         $result['ppu_base'] = $aiPpu;
+        $result['confidence_score'] = $aiConfidence;
 
         $result['confidence_reasons'][] = 'La estimación final usa el PPU sugerido por IA como reemplazo de comparables faltantes y aplica el ajuste del algoritmo existente.';
+        $result['confidence_reasons'][] = sprintf('Confianza limitada a %d (cap por evidencia insuficiente).', $confidenceCap);
 
         $result['calc_breakdown']['method'] = 'ai_augmented_algorithm_fallback';
         $result['calc_breakdown']['scope_used'] = $locationScope;
@@ -720,6 +1006,10 @@ class ValuationService
 
         return $result;
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Human-readable explanation steps
+    // ═══════════════════════════════════════════════════════════════
 
     /**
      * @return array<int, string>
@@ -816,13 +1106,21 @@ class ValuationService
     private function scopeLabel(string $scope): string
     {
         return match ($scope) {
+            'radius_1km' => 'radio de 1 km',
+            'radius_2km' => 'radio de 2 km',
+            'radius_3km' => 'radio de 3 km',
             'colonia' => 'misma colonia',
+            'colonia_fuzzy' => 'colonia similar',
             'municipio' => 'mismo municipio',
             'municipio_ampliado' => 'municipio ampliado',
             'estado' => 'referencia estatal',
             default => $scope,
         };
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Utility
+    // ═══════════════════════════════════════════════════════════════
 
     /**
      * @param array<int, float> $values
