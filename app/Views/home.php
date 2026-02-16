@@ -166,6 +166,25 @@
             </div>
 
 
+            <div id="dual-results-comparison" class="mb-4" style="display:none;">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100 dual-result-card dual-result-original">
+                            <small class="text-muted">Resultado algoritmo original (sin IA)</small>
+                            <h4 id="result-original-value" class="mb-1">—</h4>
+                            <small id="result-original-range" class="d-block">Rango: —</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100 dual-result-card dual-result-ai">
+                            <small class="text-muted">Resultado algoritmo + OpenAI (PPU de apoyo)</small>
+                            <h4 id="result-ai-value" class="mb-1">—</h4>
+                            <small id="result-ai-range" class="d-block">Rango: —</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="ai-powered-banner" class="alert alert-warning mb-4" style="display:none;">
                 <div class="d-flex flex-column flex-md-row justify-content-between gap-2 align-items-md-center">
                     <div>

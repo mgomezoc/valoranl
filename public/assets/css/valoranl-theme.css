@@ -158,3 +158,21 @@ h6 {
     border: 1px solid rgba(248, 231, 182, 0.35);
     font-weight: 600;
 }
+
+
+.dual-result-card {
+    background: rgba(2, 53, 67, 0.55);
+    border-color: rgba(230, 215, 184, 0.35) !important;
+}
+
+.dual-result-original {
+    border-left: 4px solid rgba(176, 190, 197, 0.85) !important;
+}
+
+.dual-result-ai {
+    border-left: 4px solid rgba(230, 215, 184, 0.95) !important;
+}
+
+#dual-results-comparison small {
+    color: #dbe7ec !important;
+}

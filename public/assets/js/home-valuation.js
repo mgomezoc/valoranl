@@ -32,6 +32,11 @@
     const $comparablesBody = $('#comparables-table tbody');
     const $aiPoweredBanner = $('#ai-powered-banner');
     const $aiPoweredMessage = $('#ai-powered-message');
+    const $dualResultsComparison = $('#dual-results-comparison');
+    const $resultOriginalValue = $('#result-original-value');
+    const $resultOriginalRange = $('#result-original-range');
+    const $resultAiValue = $('#result-ai-value');
+    const $resultAiRange = $('#result-ai-range');
 
     const $calcMethod = $('#calc-method');
     const $calcScope = $('#calc-scope');
@@ -276,6 +281,20 @@
         $calcAiStatus.text(aiStatusLabelMap[aiStatus] || aiStatus || 'N/D');
         $calcPpuWeighted.text(formatCurrency(ppuStats.ppu_promedio));
         $calcPpuAdjusted.text(formatCurrency(ppuStats.ppu_aplicado));
+
+        const comparison = breakdown.result_comparison || {};
+        const originalResult = comparison.algorithm_existing || null;
+        const aiAugmentedResult = comparison.ai_augmented || null;
+
+        if (originalResult && aiAugmentedResult) {
+            $resultOriginalValue.text(formatCurrency(originalResult.estimated_value));
+            $resultOriginalRange.text(`Rango: ${formatCurrency(originalResult.estimated_low)} a ${formatCurrency(originalResult.estimated_high)}`);
+            $resultAiValue.text(formatCurrency(aiAugmentedResult.estimated_value));
+            $resultAiRange.text(`Rango: ${formatCurrency(aiAugmentedResult.estimated_low)} a ${formatCurrency(aiAugmentedResult.estimated_high)}`);
+            $dualResultsComparison.show();
+        } else {
+            $dualResultsComparison.hide();
+        }
 
         const formulaItems = humanSteps.length > 0
             ? humanSteps.map((item) => `<li>${item}</li>`).join('')
