@@ -55,7 +55,7 @@ class OpenAiValuationService
         $maxTokens = (int) env('OPENAI_VALUATION_MAX_TOKENS', 900);
         $timeoutSeconds = (int) env('OPENAI_VALUATION_TIMEOUT', 15);
 
-        $systemPrompt = 'Eres un analista inmobiliario experto en Nuevo León. Devuelve únicamente JSON válido sin markdown.';
+        $systemPrompt = $this->buildSystemPrompt();
 
         log_message('info', 'OpenAI valuation request started. model={model} scope={scope} found={found} used={used}', [
             'model' => $model,
@@ -64,29 +64,12 @@ class OpenAiValuationService
             'used' => $usefulCount,
         ]);
 
-        $userPayload = [
-            'task' => 'Generar estimación de valuación cuando no hay comparables locales.',
-            'constraints' => [
-                'No hay comparables útiles de colonia/municipio.',
-                'La salida debe incluir advertencia de baja confianza.',
-                'Devuelve montos en MXN.',
-                'No inventes comparables específicos.',
-            ],
-            'subject' => $subject,
-            'location_scope_checked' => $locationScope,
-            'records_found' => $rawCount,
-            'records_used' => $usefulCount,
-            'output_schema' => [
-                'estimated_value' => 'number',
-                'estimated_low' => 'number',
-                'estimated_high' => 'number',
-                'confidence_score' => 'integer_0_100',
-                'confidence_reasons' => ['string'],
-                'human_steps' => ['string'],
-                'advisor_detail_steps' => ['string'],
-                'ai_disclaimer' => 'string',
-            ],
-        ];
+        $userPayload = $this->buildUserPayload(
+            subject: $subject,
+            locationScope: $locationScope,
+            rawCount: $rawCount,
+            usefulCount: $usefulCount,
+        );
 
         $headers = [
             'Authorization' => 'Bearer ' . $apiKey,
@@ -189,6 +172,9 @@ class OpenAiValuationService
         $humanSteps = $this->normalizeStringArray($parsed['human_steps'] ?? []);
         $advisorSteps = $this->normalizeStringArray($parsed['advisor_detail_steps'] ?? []);
         $aiDisclaimer = trim((string) ($parsed['ai_disclaimer'] ?? 'Estimación orientativa generada con IA por falta de comparables locales.'));
+        $estimatedPpu = $this->normalizeMoney($parsed['estimated_value_per_m2'] ?? null);
+        $methodologySummary = trim((string) ($parsed['methodology_summary'] ?? ''));
+        $appliedAdjustments = $this->normalizeAdjustments($parsed['applied_adjustments'] ?? []);
 
         if ($confidenceReasons === []) {
             $confidenceReasons = [
@@ -219,11 +205,13 @@ class OpenAiValuationService
         $this->lastAttempt['status'] = 'success';
         $this->lastAttempt['detail'] = $requestId;
 
-        log_message('info', 'OpenAI valuation request completed with status={status} request_id={requestId} estimated_value={estimatedValue} confidence={confidence}', [
+        log_message('info', 'OpenAI valuation request completed with status={status} request_id={requestId} estimated_value={estimatedValue} confidence={confidence} ppu={ppu} adjustments={adjustments}', [
             'status' => $this->lastAttempt['status'],
             'requestId' => $requestId ?? 'n/a',
             'estimatedValue' => (string) $estimatedValue,
             'confidence' => (string) $confidenceScore,
+            'ppu' => $estimatedPpu !== null ? (string) $estimatedPpu : 'n/a',
+            'adjustments' => (string) count($appliedAdjustments),
         ]);
 
         return [
@@ -254,11 +242,12 @@ class OpenAiValuationService
                 'comparables_raw' => $rawCount,
                 'comparables_useful' => $usefulCount,
                 'ppu_stats' => [
-                    'ppu_promedio' => null,
-                    'ppu_aplicado' => null,
+                    'ppu_promedio' => $estimatedPpu,
+                    'ppu_aplicado' => $estimatedPpu,
                 ],
                 'valuation_factors' => [
                     'ai_disclaimer' => $aiDisclaimer,
+                    'methodology_summary' => $methodologySummary,
                 ],
                 'human_steps' => $humanSteps,
                 'advisor_detail_steps' => $advisorSteps,
@@ -279,6 +268,7 @@ class OpenAiValuationService
                         $rawCount,
                         $usefulCount,
                     ),
+                    'applied_adjustments' => $appliedAdjustments,
                 ],
             ],
         ];
@@ -362,6 +352,91 @@ class OpenAiValuationService
         }
 
         return implode(' | ', $parts);
+    }
+
+    private function buildSystemPrompt(): string
+    {
+        return 'Actúa como valuador inmobiliario certificado en México, especialista en mercado residencial de Nuevo León. Devuelve exclusivamente JSON válido, sin markdown ni texto adicional.';
+    }
+
+    /**
+     * @param array<string, mixed> $subject
+     * @return array<string, mixed>
+     */
+    private function buildUserPayload(array $subject, string $locationScope, int $rawCount, int $usefulCount): array
+    {
+        return [
+            'task' => 'Calcular una estimación de valor de mercado para una vivienda con base técnica, usando enfoque comparativo y ajustes explicados.',
+            'context' => [
+                'location_scope_checked' => $locationScope,
+                'records_found' => $rawCount,
+                'records_used' => $usefulCount,
+                'note' => 'No hay comparables locales útiles de colonia/municipio; debes emitir una estimación de apoyo de baja confianza sin inventar comparables.',
+            ],
+            'subject' => $subject,
+            'calculation_instructions' => [
+                'Estima un valor por m² de construcción para el contexto local.',
+                'Multiplica por el área de construcción del sujeto para un valor base.',
+                'Aplica ajustes porcentuales por atributos relevantes (estado, equipamiento, ubicación) y explica su impacto monetario.',
+                'Entrega rango conservador, rango competitivo y valor recomendado.',
+            ],
+            'constraints' => [
+                'Devuelve montos en MXN.',
+                'No inventes comparables puntuales ni direcciones.',
+                'Mantén baja confianza por insuficiencia de muestra local.',
+            ],
+            'output_schema' => [
+                'estimated_value' => 'number',
+                'estimated_low' => 'number',
+                'estimated_high' => 'number',
+                'estimated_value_per_m2' => 'number',
+                'applied_adjustments' => [[
+                    'factor' => 'string',
+                    'percentage' => 'number',
+                    'monetary_impact' => 'number',
+                    'rationale' => 'string',
+                ]],
+                'methodology_summary' => 'string',
+                'confidence_score' => 'integer_0_100',
+                'confidence_reasons' => ['string'],
+                'human_steps' => ['string'],
+                'advisor_detail_steps' => ['string'],
+                'ai_disclaimer' => 'string',
+            ],
+        ];
+    }
+
+    /**
+     * @param mixed $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeAdjustments(mixed $items): array
+    {
+        if (! is_array($items)) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $factor = trim((string) ($item['factor'] ?? ''));
+            if ($factor === '') {
+                continue;
+            }
+
+            $result[] = [
+                'factor' => $factor,
+                'percentage' => (float) ($item['percentage'] ?? 0),
+                'monetary_impact' => (float) ($item['monetary_impact'] ?? 0),
+                'rationale' => trim((string) ($item['rationale'] ?? '')),
+            ];
+        }
+
+        return $result;
     }
 
     /**
