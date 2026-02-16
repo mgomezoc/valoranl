@@ -219,14 +219,16 @@ class OpenAiValuationService
         $this->lastAttempt['status'] = 'success';
         $this->lastAttempt['detail'] = $requestId;
 
-        log_message('info', 'OpenAI valuation request completed with status={status} request_id={requestId}', [
+        log_message('info', 'OpenAI valuation request completed with status={status} request_id={requestId} estimated_value={estimatedValue} confidence={confidence}', [
             'status' => $this->lastAttempt['status'],
             'requestId' => $requestId ?? 'n/a',
+            'estimatedValue' => (string) $estimatedValue,
+            'confidence' => (string) $confidenceScore,
         ]);
 
         return [
             'ok' => true,
-            'message' => 'No se encontraron comparables locales útiles; se generó una estimación de apoyo con IA (confianza baja).',
+            'message' => 'No se encontraron comparables locales útiles; se generó una estimación de apoyo con IA usando las características del inmueble objetivo (confianza baja).',
             'subject' => $subject,
             'estimated_value' => $estimatedValue,
             'estimated_low' => $estimatedLow,
@@ -264,6 +266,19 @@ class OpenAiValuationService
                     'provider' => 'openai',
                     'model' => $model,
                     'request_id' => $requestId,
+                    'attempted' => true,
+                    'status' => $this->lastAttempt['status'],
+                    'input_summary' => sprintf(
+                        'IA usó: tipo=%s, municipio=%s, colonia=%s, construcción=%s m², edad=%d años, conservación=%d/10, y resultado de búsqueda local (%d encontrados, %d útiles).',
+                        (string) ($subject['property_type'] ?? 'N/D'),
+                        (string) ($subject['municipality'] ?? 'N/D'),
+                        (string) ($subject['colony'] ?? 'N/D'),
+                        number_format((float) ($subject['area_construction_m2'] ?? 0), 2),
+                        (int) ($subject['age_years'] ?? 0),
+                        (int) ($subject['conservation_level'] ?? 0),
+                        $rawCount,
+                        $usefulCount,
+                    ),
                 ],
             ],
         ];

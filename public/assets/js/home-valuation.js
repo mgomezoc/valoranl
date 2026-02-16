@@ -38,6 +38,7 @@
     const $calcCounts = $('#calc-counts');
     const $calcDbUsage = $('#calc-db-usage');
     const $calcDataOrigin = $('#calc-data-origin');
+    const $calcAiInputs = $('#calc-ai-inputs');
     const $calcAiStatus = $('#calc-ai-status');
     const $calcPpuWeighted = $('#calc-ppu-weighted');
     const $calcPpuAdjusted = $('#calc-ppu-adjusted');
@@ -267,8 +268,11 @@
             request_started: 'Consulta IA iniciada',
         };
 
+        const aiInputSummary = aiMetadata.input_summary || 'Se enviaron características del inmueble objetivo (tipo, ubicación, superficie, edad y estado de conservación), junto con el resultado de búsqueda local sin comparables útiles.';
+
         $calcDbUsage.text(usedDatabase ? 'Sí. Se utilizaron comparables de la base de propiedades.' : 'No. Se usó referencia de mercado sin comparables utilizables.');
         $calcDataOrigin.text(dataOrigin.source_label || 'N/D');
+        $calcAiInputs.text(aiInputSummary);
         $calcAiStatus.text(aiStatusLabelMap[aiStatus] || aiStatus || 'N/D');
         $calcPpuWeighted.text(formatCurrency(ppuStats.ppu_promedio));
         $calcPpuAdjusted.text(formatCurrency(ppuStats.ppu_aplicado));

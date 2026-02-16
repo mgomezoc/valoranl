@@ -237,6 +237,10 @@
                             <td id="calc-data-origin">—</td>
                         </tr>
                         <tr>
+                            <th>¿Qué datos usó IA para estimar?</th>
+                            <td id="calc-ai-inputs">—</td>
+                        </tr>
+                        <tr>
                             <th>Estado de consulta IA</th>
                             <td id="calc-ai-status">—</td>
                         </tr>

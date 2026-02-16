@@ -136,3 +136,25 @@ h6 {
 .valuation-results-card table tbody td ul {
     padding-left: 1.1rem;
 }
+
+
+.valuation-results-card #ai-powered-banner {
+    border: 1px solid rgba(230, 215, 184, 0.45);
+    background: linear-gradient(135deg, #f3e9ca 0%, #efe1bb 100%);
+    color: #2f2a1d;
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.valuation-results-card #ai-powered-banner strong,
+.valuation-results-card #ai-powered-banner span,
+.valuation-results-card #ai-powered-banner div {
+    color: #2f2a1d !important;
+}
+
+.valuation-results-card #ai-powered-banner .badge {
+    background: #132a34 !important;
+    color: #f8e7b6 !important;
+    border: 1px solid rgba(248, 231, 182, 0.35);
+    font-weight: 600;
+}
