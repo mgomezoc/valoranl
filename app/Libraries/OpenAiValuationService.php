@@ -178,7 +178,12 @@ class OpenAiValuationService
         $humanSteps = $this->normalizeStringArray($parsed['human_steps'] ?? []);
         $advisorSteps = $this->normalizeStringArray($parsed['advisor_detail_steps'] ?? []);
         $aiDisclaimer = trim((string) ($parsed['ai_disclaimer'] ?? 'Estimación orientativa generada con IA por falta de comparables locales.'));
-        $estimatedPpu = $this->normalizeMoney($parsed['estimated_value_per_m2'] ?? null);
+        $rawEstimatedPpu = $parsed['estimated_value_per_m2'] ?? null;
+        $estimatedPpu = $this->normalizePpu($rawEstimatedPpu);
+
+        if ($estimatedPpu === null && isset($subject['area_construction_m2']) && (float) $subject['area_construction_m2'] > 0) {
+            $estimatedPpu = $this->normalizePpu($estimatedValue / (float) $subject['area_construction_m2']);
+        }
         $methodologySummary = trim((string) ($parsed['methodology_summary'] ?? ''));
         $appliedAdjustments = $this->normalizeAdjustments($parsed['applied_adjustments'] ?? []);
 
@@ -211,12 +216,13 @@ class OpenAiValuationService
         $this->lastAttempt['status'] = 'success';
         $this->lastAttempt['detail'] = $requestId;
 
-        log_message('info', 'OpenAI valuation request completed with status={status} request_id={requestId} estimated_value={estimatedValue} confidence={confidence} ppu={ppu} adjustments={adjustments}', [
+        log_message('info', 'OpenAI valuation request completed with status={status} request_id={requestId} estimated_value={estimatedValue} confidence={confidence} ppu={ppu} raw_ppu={rawPpu} adjustments={adjustments}', [
             'status' => $this->lastAttempt['status'],
             'requestId' => $requestId ?? 'n/a',
             'estimatedValue' => (string) $estimatedValue,
             'confidence' => (string) $confidenceScore,
             'ppu' => $estimatedPpu !== null ? (string) $estimatedPpu : 'n/a',
+            'rawPpu' => $rawEstimatedPpu !== null ? (string) $rawEstimatedPpu : 'n/a',
             'adjustments' => (string) count($appliedAdjustments),
         ]);
 
@@ -476,6 +482,26 @@ class OpenAiValuationService
         }
 
         return ceil($number / 1000) * 1000;
+    }
+
+    private function normalizePpu(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $number = (float) $value;
+        if ($number <= 0) {
+            return null;
+        }
+
+        // Keep PPU precision by tens (not thousands) and clamp to plausible NL range.
+        $number = round($number / 10) * 10;
+        if ($number < 5000 || $number > 80000) {
+            return null;
+        }
+
+        return $number;
     }
 
     /**
