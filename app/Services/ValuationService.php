@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Libraries\OpenAiValuationService;
 use App\Libraries\ValuationMath;
 use App\Models\ListingModel;
 
@@ -11,6 +12,7 @@ class ValuationService
     public function __construct(
         private readonly ListingModel $listingModel = new ListingModel(),
         private readonly ValuationMath $valuationMath = new ValuationMath(),
+        private readonly OpenAiValuationService $openAiValuationService = new OpenAiValuationService(),
     ) {}
 
     /**
@@ -47,6 +49,17 @@ class ValuationService
         $comparablesUsefulCount = count($prepared);
 
         if ($prepared === []) {
+            $openAiFallback = $this->openAiValuationService->estimateWithoutComparables(
+                subject: $subject,
+                locationScope: $locationScope,
+                rawCount: $comparablesRawCount,
+                usefulCount: $comparablesUsefulCount,
+            );
+
+            if (is_array($openAiFallback)) {
+                return $openAiFallback;
+            }
+
             return $this->buildSyntheticFallbackEstimate(
                 subject: $subject,
                 locationScope: $locationScope,

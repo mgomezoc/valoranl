@@ -28,6 +28,8 @@
     const $confidence = $('#result-confidence');
     const $confidenceReasons = $('#result-confidence-reasons');
     const $comparablesBody = $('#comparables-table tbody');
+    const $aiPoweredBanner = $('#ai-powered-banner');
+    const $aiPoweredMessage = $('#ai-powered-message');
 
     const $calcMethod = $('#calc-method');
     const $calcScope = $('#calc-scope');
@@ -211,9 +213,13 @@
         const humanSteps = Array.isArray(breakdown.human_steps) ? breakdown.human_steps : [];
         const advisorSteps = Array.isArray(breakdown.advisor_detail_steps) ? breakdown.advisor_detail_steps : [];
 
-        const methodLabel = (breakdown.method || '').indexOf('synthetic') !== -1
-            ? 'Estimación de apoyo (sin suficientes comparables)'
-            : 'Comparación con propiedades similares (Excel v2)';
+        const methodCode = (breakdown.method || '').toLowerCase();
+        const isOpenAiMethod = methodCode.indexOf('openai') !== -1;
+        const methodLabel = isOpenAiMethod
+            ? 'Estimación de apoyo potenciada por IA'
+            : (methodCode.indexOf('synthetic') !== -1
+                ? 'Estimación de apoyo (sin suficientes comparables)'
+                : 'Comparación con propiedades similares (Excel v2)');
 
         const scopeLabelMap = {
             colonia: 'Misma colonia',
@@ -225,6 +231,16 @@
 
         const dataOrigin = breakdown.data_origin || {};
         const usedDatabase = breakdown.used_properties_database === true || dataOrigin.used_for_calculation === true;
+
+        if (isOpenAiMethod) {
+            const aiDisclaimer = breakdown.valuation_factors && breakdown.valuation_factors.ai_disclaimer
+                ? breakdown.valuation_factors.ai_disclaimer
+                : 'Estimación orientativa generada por IA por falta de comparables locales.';
+            $aiPoweredMessage.text(aiDisclaimer);
+            $aiPoweredBanner.show();
+        } else {
+            $aiPoweredBanner.hide();
+        }
 
         $calcMethod.text(methodLabel);
         $calcScope.text(scopeLabelMap[breakdown.scope_used] || breakdown.scope_used || response.location_scope || 'N/D');
