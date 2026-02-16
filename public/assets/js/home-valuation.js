@@ -535,9 +535,10 @@
         const estimatedHigh = Number(response.estimated_high) || 0;
         const confidenceScore = Number(response.confidence_score) || 0;
 
-        // Hero value with odometer
+        // Hero value with odometer ($ prefix is a separate element)
         const heroEl = $estimatedValue[0];
         if (heroEl && typeof Odometer !== 'undefined') {
+            heroEl.innerHTML = '0';
             const od = new Odometer({
                 el: heroEl,
                 value: 0,
@@ -545,15 +546,8 @@
                 theme: 'default',
             });
             od.update(estimatedValue);
-            // Add currency prefix
-            setTimeout(() => {
-                const currentText = $estimatedValue.text();
-                if (!currentText.startsWith('$')) {
-                    $estimatedValue.text(formatCurrency(estimatedValue));
-                }
-            }, 1500);
         } else {
-            $estimatedValue.text(formatCurrency(estimatedValue));
+            $estimatedValue.text(formatNumber(estimatedValue));
         }
 
         // Range bar

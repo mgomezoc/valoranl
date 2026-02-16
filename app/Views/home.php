@@ -282,7 +282,9 @@
         <!-- Result hero -->
         <div class="vn-result-hero wow fadeIn" data-wow-duration="0.6s">
             <div class="vn-result-hero__label">Valor estimado de mercado</div>
-            <div class="vn-result-hero__value odometer" id="result-estimated-value">0</div>
+            <div class="vn-result-hero__value">
+                <span class="vn-result-hero__currency" id="result-currency-prefix">$</span><span class="odometer" id="result-estimated-value">0</span>
+            </div>
             <p class="vn-result-hero__message" id="valuation-result-message"></p>
 
             <!-- Range bar -->

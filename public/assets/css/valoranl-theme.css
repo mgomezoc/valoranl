@@ -1041,8 +1041,53 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ─── Odometer in hero ─── */
-.vn-result-hero__value.odometer {
+.vn-result-hero__value .odometer {
     display: inline-block;
+    vertical-align: baseline;
+}
+
+/* Currency prefix next to odometer */
+.vn-result-hero__currency {
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    vertical-align: baseline;
+}
+
+/* Fix odometer digits: inline → inline-block for proper absolute positioning */
+.vn-result-hero__value .odometer.odometer-auto-theme,
+.vn-result-hero__value .odometer.odometer-theme-default {
+    display: inline-block;
+    line-height: 1.1;
+}
+
+.vn-result-hero__value .odometer .odometer-digit {
+    display: inline-block;
+    vertical-align: baseline;
+    position: relative;
+}
+
+.vn-result-hero__value .odometer .odometer-digit .odometer-digit-spacer {
+    display: inline-block;
+    visibility: hidden;
+}
+
+.vn-result-hero__value .odometer .odometer-formatting-mark {
+    display: inline-block;
+    vertical-align: baseline;
+}
+
+.vn-result-hero__value .odometer .odometer-digit .odometer-digit-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+}
+
+.vn-result-hero__value .odometer .odometer-value {
+    color: var(--vn-gold);
 }
 
 /* ═══════════════════════════════════════════════
