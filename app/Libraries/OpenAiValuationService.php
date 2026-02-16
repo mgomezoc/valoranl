@@ -38,7 +38,7 @@ class OpenAiValuationService
             return null;
         }
 
-        $apiKey = (string) env('OPENAI_API_KEY', '');
+        $apiKey = $this->resolveApiKey();
         if ($apiKey === '') {
             $this->lastAttempt['status'] = 'missing_api_key';
 
@@ -79,12 +79,24 @@ class OpenAiValuationService
             ],
         ];
 
+        $headers = [
+            'Authorization' => 'Bearer ' . $apiKey,
+            'Content-Type' => 'application/json',
+        ];
+
+        $projectId = $this->normalizeEnvValue((string) env('OPENAI_PROJECT_ID', (string) env('OPENAI_PROJECT', '')));
+        if ($projectId !== '') {
+            $headers['OpenAI-Project'] = $projectId;
+        }
+
+        $organizationId = $this->normalizeEnvValue((string) env('OPENAI_ORGANIZATION', (string) env('OPENAI_ORG_ID', '')));
+        if ($organizationId !== '') {
+            $headers['OpenAI-Organization'] = $organizationId;
+        }
+
         try {
             $response = $this->httpClient->post('https://api.openai.com/v1/chat/completions', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Content-Type' => 'application/json',
-                ],
+                'headers' => $headers,
                 'json' => [
                     'model' => $model,
                     'temperature' => $temperature,
@@ -96,6 +108,7 @@ class OpenAiValuationService
                     'response_format' => ['type' => 'json_object'],
                 ],
                 'timeout' => $timeoutSeconds,
+                'http_errors' => false,
             ]);
         } catch (\Throwable $exception) {
             $this->lastAttempt['status'] = 'request_exception';
@@ -108,10 +121,15 @@ class OpenAiValuationService
 
         $statusCode = $response->getStatusCode();
         if ($statusCode < 200 || $statusCode >= 300) {
-            $this->lastAttempt['status'] = 'non_2xx_status';
-            $this->lastAttempt['detail'] = 'HTTP ' . $statusCode;
+            $errorDetail = $this->extractApiErrorDetail($response->getBody());
 
-            log_message('error', 'OpenAI valuation response status {status}', ['status' => $statusCode]);
+            $this->lastAttempt['status'] = 'non_2xx_status';
+            $this->lastAttempt['detail'] = trim('HTTP ' . $statusCode . ' ' . $errorDetail);
+
+            log_message('error', 'OpenAI valuation response status {status}: {detail}', [
+                'status' => $statusCode,
+                'detail' => $errorDetail !== '' ? $errorDetail : 'no-error-detail',
+            ]);
 
             return null;
         }
@@ -242,6 +260,56 @@ class OpenAiValuationService
         $value = strtolower(trim((string) env('OPENAI_VALUATION_ENABLED', 'false')));
 
         return in_array($value, ['1', 'true', 'yes', 'on'], true);
+    }
+
+    private function resolveApiKey(): string
+    {
+        $directKey = $this->normalizeEnvValue((string) env('OPENAI_API_KEY', ''));
+        if ($directKey !== '') {
+            return $directKey;
+        }
+
+        return $this->normalizeEnvValue((string) env('OPENAI_KEY', ''));
+    }
+
+    private function normalizeEnvValue(string $value): string
+    {
+        $normalized = trim($value);
+        $normalized = trim($normalized, "\"'");
+
+        return trim($normalized);
+    }
+
+    private function extractApiErrorDetail(string $responseBody): string
+    {
+        $decoded = json_decode($responseBody, true);
+        if (! is_array($decoded)) {
+            return '';
+        }
+
+        $error = $decoded['error'] ?? null;
+        if (! is_array($error)) {
+            return '';
+        }
+
+        $parts = [];
+
+        $message = trim((string) ($error['message'] ?? ''));
+        if ($message !== '') {
+            $parts[] = $message;
+        }
+
+        $code = trim((string) ($error['code'] ?? ''));
+        if ($code !== '') {
+            $parts[] = 'code=' . $code;
+        }
+
+        $type = trim((string) ($error['type'] ?? ''));
+        if ($type !== '') {
+            $parts[] = 'type=' . $type;
+        }
+
+        return implode(' | ', $parts);
     }
 
     /**
