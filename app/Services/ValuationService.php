@@ -49,6 +49,14 @@ class ValuationService
         $comparablesUsefulCount = count($prepared);
 
         if ($prepared === []) {
+            $algorithmFallback = $this->buildSyntheticFallbackEstimate(
+                subject: $subject,
+                locationScope: $locationScope,
+                rawCount: $comparablesRawCount,
+                usefulCount: $comparablesUsefulCount,
+                openAiAttemptMeta: ['attempted' => false, 'status' => 'not_called', 'detail' => null],
+            );
+
             $openAiFallback = $this->openAiValuationService->estimateWithoutComparables(
                 subject: $subject,
                 locationScope: $locationScope,
@@ -57,18 +65,26 @@ class ValuationService
             );
 
             if (is_array($openAiFallback)) {
-                return $openAiFallback;
+                return $this->buildAiAugmentedFallbackEstimate(
+                    subject: $subject,
+                    locationScope: $locationScope,
+                    rawCount: $comparablesRawCount,
+                    usefulCount: $comparablesUsefulCount,
+                    algorithmFallback: $algorithmFallback,
+                    openAiFallback: $openAiFallback,
+                );
             }
 
             $openAiAttemptMeta = $this->openAiValuationService->getLastAttemptMeta();
 
-            return $this->buildSyntheticFallbackEstimate(
-                subject: $subject,
-                locationScope: $locationScope,
-                rawCount: $comparablesRawCount,
-                usefulCount: $comparablesUsefulCount,
-                openAiAttemptMeta: $openAiAttemptMeta,
-            );
+            $algorithmFallback['calc_breakdown']['ai_metadata'] = [
+                'provider' => 'openai',
+                'attempted' => (bool) ($openAiAttemptMeta['attempted'] ?? false),
+                'status' => (string) ($openAiAttemptMeta['status'] ?? 'not_called'),
+                'detail' => isset($openAiAttemptMeta['detail']) ? (string) $openAiAttemptMeta['detail'] : null,
+            ];
+
+            return $algorithmFallback;
         }
 
         // Compute per-comparable homologation factors
@@ -636,6 +652,73 @@ class ValuationService
                 ],
             ],
         ];
+    }
+
+
+    /**
+     * @param array<string, mixed> $subject
+     * @param array<string, mixed> $algorithmFallback
+     * @param array<string, mixed> $openAiFallback
+     * @return array<string, mixed>
+     */
+    private function buildAiAugmentedFallbackEstimate(
+        array $subject,
+        string $locationScope,
+        int $rawCount,
+        int $usefulCount,
+        array $algorithmFallback,
+        array $openAiFallback,
+    ): array {
+        $rangeSpread = (new \Config\Valuation())->rangeSpread;
+
+        $aiPpu = isset($openAiFallback['calc_breakdown']['ppu_stats']['ppu_aplicado'])
+            ? (float) $openAiFallback['calc_breakdown']['ppu_stats']['ppu_aplicado']
+            : 0.0;
+
+        if ($aiPpu <= 0 && isset($openAiFallback['estimated_value'], $subject['area_construction_m2']) && (float) $subject['area_construction_m2'] > 0) {
+            $aiPpu = (float) $openAiFallback['estimated_value'] / (float) $subject['area_construction_m2'];
+        }
+
+        $aiPpu = $this->valuationMath->roundPpu($aiPpu > 0 ? $aiPpu : 18000.0);
+        $aiAdjustedValue = $this->valuationMath->roundValueToThousands($aiPpu * (float) $subject['area_construction_m2']);
+
+        $result = $openAiFallback;
+        $result['message'] = 'Sin comparables locales, se muestran dos referencias: algoritmo base y cálculo potenciado con OpenAI.';
+        $result['estimated_value'] = $aiAdjustedValue;
+        $result['estimated_low'] = $this->valuationMath->roundValueToThousands($aiAdjustedValue * (1 - $rangeSpread));
+        $result['estimated_high'] = $this->valuationMath->roundValueToThousands($aiAdjustedValue * (1 + $rangeSpread));
+        $result['ppu_base'] = $aiPpu;
+
+        $result['confidence_reasons'][] = 'La estimación final usa el PPU sugerido por IA como reemplazo de comparables faltantes y aplica el ajuste del algoritmo existente.';
+
+        $result['calc_breakdown']['method'] = 'ai_augmented_algorithm_fallback';
+        $result['calc_breakdown']['scope_used'] = $locationScope;
+        $result['calc_breakdown']['comparables_raw'] = $rawCount;
+        $result['calc_breakdown']['comparables_useful'] = $usefulCount;
+        $result['calc_breakdown']['used_properties_database'] = false;
+        $result['calc_breakdown']['data_origin']['source_label'] = 'PPU de apoyo generado por OpenAI para reemplazar comparables faltantes y continuar con el algoritmo local.';
+        $result['calc_breakdown']['data_origin']['used_for_calculation'] = false;
+        $result['calc_breakdown']['ppu_stats']['ppu_aplicado'] = $aiPpu;
+        $result['calc_breakdown']['valuation_factors']['ai_ppu_direct'] = true;
+        $result['calc_breakdown']['formula']['estimated_value'] = 'ROUNDUP(ppu_openai × m²_construcción, -3)';
+        $result['calc_breakdown']['result_comparison'] = [
+            'algorithm_existing' => [
+                'label' => 'Algoritmo original (sin IA)',
+                'estimated_value' => $algorithmFallback['estimated_value'] ?? null,
+                'estimated_low' => $algorithmFallback['estimated_low'] ?? null,
+                'estimated_high' => $algorithmFallback['estimated_high'] ?? null,
+                'ppu_used' => $algorithmFallback['ppu_base'] ?? null,
+            ],
+            'ai_augmented' => [
+                'label' => 'Algoritmo con PPU de OpenAI',
+                'estimated_value' => $result['estimated_value'],
+                'estimated_low' => $result['estimated_low'],
+                'estimated_high' => $result['estimated_high'],
+                'ppu_used' => $aiPpu,
+            ],
+        ];
+
+        return $result;
     }
 
     /**

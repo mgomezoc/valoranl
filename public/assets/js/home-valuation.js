@@ -32,12 +32,18 @@
     const $comparablesBody = $('#comparables-table tbody');
     const $aiPoweredBanner = $('#ai-powered-banner');
     const $aiPoweredMessage = $('#ai-powered-message');
+    const $dualResultsComparison = $('#dual-results-comparison');
+    const $resultOriginalValue = $('#result-original-value');
+    const $resultOriginalRange = $('#result-original-range');
+    const $resultAiValue = $('#result-ai-value');
+    const $resultAiRange = $('#result-ai-range');
 
     const $calcMethod = $('#calc-method');
     const $calcScope = $('#calc-scope');
     const $calcCounts = $('#calc-counts');
     const $calcDbUsage = $('#calc-db-usage');
     const $calcDataOrigin = $('#calc-data-origin');
+    const $calcAiInputs = $('#calc-ai-inputs');
     const $calcAiStatus = $('#calc-ai-status');
     const $calcPpuWeighted = $('#calc-ppu-weighted');
     const $calcPpuAdjusted = $('#calc-ppu-adjusted');
@@ -217,12 +223,14 @@
         const advisorSteps = Array.isArray(breakdown.advisor_detail_steps) ? breakdown.advisor_detail_steps : [];
 
         const methodCode = (breakdown.method || '').toLowerCase();
-        const isOpenAiMethod = methodCode.indexOf('openai') !== -1;
-        const methodLabel = isOpenAiMethod
-            ? 'Estimación de apoyo potenciada por IA'
-            : (methodCode.indexOf('synthetic') !== -1
-                ? 'Estimación de apoyo (sin suficientes comparables)'
-                : 'Comparación con propiedades similares (Excel v2)');
+        const isOpenAiMethod = methodCode.indexOf('openai') !== -1 || methodCode.indexOf('ai_augmented') !== -1 || breakdown.ai_powered === true;
+        const methodLabel = methodCode.indexOf('ai_augmented') !== -1
+            ? 'Algoritmo local con PPU de OpenAI (sin comparables locales)'
+            : (isOpenAiMethod
+                ? 'Estimación de apoyo potenciada por IA'
+                : (methodCode.indexOf('synthetic') !== -1
+                    ? 'Estimación de apoyo (sin suficientes comparables)'
+                    : 'Comparación con propiedades similares (Excel v2)'));
 
         const scopeLabelMap = {
             colonia: 'Misma colonia',
@@ -238,14 +246,14 @@
         const aiAttempted = aiMetadata.attempted === true;
         const aiStatus = aiMetadata.status || 'no_intentado';
 
-        if (isOpenAiMethod) {
+        if (isOpenAiMethod || aiStatus === 'success') {
             const aiDisclaimer = breakdown.valuation_factors && breakdown.valuation_factors.ai_disclaimer
                 ? breakdown.valuation_factors.ai_disclaimer
                 : 'Estimación orientativa generada por IA por falta de comparables locales.';
             $aiPoweredMessage.text(aiDisclaimer);
             $aiPoweredBanner.show();
         } else if (aiAttempted) {
-            $aiPoweredMessage.text(`Se intentó consultar IA para este cálculo, pero no estuvo disponible (estado: ${aiStatus}). Se aplicó fallback local.`);
+            $aiPoweredMessage.text(`Intentamos consultar IA para mejorar este cálculo, pero no estuvo disponible (estado: ${aiStatus}). Mostramos una estimación local orientativa.`);
             $aiPoweredBanner.show();
         } else {
             $aiPoweredBanner.hide();
@@ -267,11 +275,28 @@
             request_started: 'Consulta IA iniciada',
         };
 
+        const aiInputSummary = aiMetadata.input_summary || 'Se enviaron características del inmueble objetivo (tipo, ubicación, superficie, edad y estado de conservación), junto con el resultado de búsqueda local sin comparables útiles.';
+
         $calcDbUsage.text(usedDatabase ? 'Sí. Se utilizaron comparables de la base de propiedades.' : 'No. Se usó referencia de mercado sin comparables utilizables.');
         $calcDataOrigin.text(dataOrigin.source_label || 'N/D');
+        $calcAiInputs.text(aiInputSummary);
         $calcAiStatus.text(aiStatusLabelMap[aiStatus] || aiStatus || 'N/D');
         $calcPpuWeighted.text(formatCurrency(ppuStats.ppu_promedio));
         $calcPpuAdjusted.text(formatCurrency(ppuStats.ppu_aplicado));
+
+        const comparison = breakdown.result_comparison || {};
+        const originalResult = comparison.algorithm_existing || null;
+        const aiAugmentedResult = comparison.ai_augmented || null;
+
+        if (originalResult && aiAugmentedResult) {
+            $resultOriginalValue.text(formatCurrency(originalResult.estimated_value));
+            $resultOriginalRange.text(`Rango: ${formatCurrency(originalResult.estimated_low)} a ${formatCurrency(originalResult.estimated_high)}`);
+            $resultAiValue.text(formatCurrency(aiAugmentedResult.estimated_value));
+            $resultAiRange.text(`Rango: ${formatCurrency(aiAugmentedResult.estimated_low)} a ${formatCurrency(aiAugmentedResult.estimated_high)}`);
+            $dualResultsComparison.show();
+        } else {
+            $dualResultsComparison.hide();
+        }
 
         const formulaItems = humanSteps.length > 0
             ? humanSteps.map((item) => `<li>${item}</li>`).join('')

@@ -166,11 +166,30 @@
             </div>
 
 
+            <div id="dual-results-comparison" class="mb-4" style="display:none;">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100 dual-result-card dual-result-original">
+                            <small class="text-muted">Resultado algoritmo original (sin IA)</small>
+                            <h4 id="result-original-value" class="mb-1">—</h4>
+                            <small id="result-original-range" class="d-block">Rango: —</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100 dual-result-card dual-result-ai">
+                            <small class="text-muted">Resultado algoritmo + OpenAI (PPU de apoyo)</small>
+                            <h4 id="result-ai-value" class="mb-1">—</h4>
+                            <small id="result-ai-range" class="d-block">Rango: —</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="ai-powered-banner" class="alert alert-warning mb-4" style="display:none;">
                 <div class="d-flex flex-column flex-md-row justify-content-between gap-2 align-items-md-center">
                     <div>
-                        <strong>⚠️ Resultado potenciado por IA (baja confianza)</strong><br>
-                        <span id="ai-powered-message">No se encontraron comparables locales suficientes; se muestra una estimación orientativa.</span>
+                        <strong>⚠️ Estimación de apoyo con IA (confianza baja)</strong><br>
+                        <span id="ai-powered-message">No se encontraron comparables locales suficientes; este rango es orientativo y debe validarse con avalúo profesional.</span>
                     </div>
                     <span class="badge text-bg-dark">✨ IA para acelerar tu primer rango de precio</span>
                 </div>
@@ -235,6 +254,10 @@
                         <tr>
                             <th>Origen de los datos usados</th>
                             <td id="calc-data-origin">—</td>
+                        </tr>
+                        <tr>
+                            <th>¿Qué datos usó IA para estimar?</th>
+                            <td id="calc-ai-inputs">—</td>
                         </tr>
                         <tr>
                             <th>Estado de consulta IA</th>
