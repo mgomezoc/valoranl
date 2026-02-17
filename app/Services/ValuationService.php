@@ -8,6 +8,7 @@ use App\Models\ListingModel;
 
 class ValuationService
 {
+    private const MAX_COMPARABLES_FOR_VALUATION = 3;
 
     public function __construct(
         private readonly ListingModel $listingModel = new ListingModel(),
@@ -88,8 +89,10 @@ class ValuationService
 
         // 4. Normal valuation with comparables
         $homologated = $this->homologateComparables($prepared, $subject, $subjectDepr);
+        usort($homologated, static fn(array $a, array $b): int => $b['similarity_score'] <=> $a['similarity_score']);
+        $valuationComparables = array_slice($homologated, 0, self::MAX_COMPARABLES_FOR_VALUATION);
 
-        $ppusHomologados = array_column($homologated, 'ppu_homologado');
+        $ppusHomologados = array_column($valuationComparables, 'ppu_homologado');
         $ppuPromedio = array_sum($ppusHomologados) / count($ppusHomologados);
         $ppuAplicado = $this->valuationMath->roundPpu($ppuPromedio);
 
@@ -99,10 +102,7 @@ class ValuationService
         $estimatedLow = $this->valuationMath->roundValueToThousands($ppuAplicado * (1 - $rangeSpread) * $subject['area_construction_m2']);
         $estimatedHigh = $this->valuationMath->roundValueToThousands($ppuAplicado * (1 + $rangeSpread) * $subject['area_construction_m2']);
 
-        $confidence = $this->buildConfidence($prepared, $locationScope, $subject);
-
-        usort($homologated, static fn(array $a, array $b): int => $b['similarity_score'] <=> $a['similarity_score']);
-        $topComparables = array_slice($homologated, 0, 5);
+        $confidence = $this->buildConfidence($valuationComparables, $locationScope, $subject);
 
         $areaMin = round($subject['area_construction_m2'] * 0.4, 2);
         $areaMax = round($subject['area_construction_m2'] * 2.5, 2);
@@ -118,13 +118,13 @@ class ValuationService
             'estimated_low' => $estimatedLow,
             'estimated_high' => $estimatedHigh,
             'ppu_base' => $ppuAplicado,
-            'comparables_count' => count($prepared),
-            'comparables' => $topComparables,
+            'comparables_count' => count($valuationComparables),
+            'comparables' => $valuationComparables,
             'confidence_score' => $confidence['score'],
             'confidence_reasons' => $confidence['reasons'],
             'location_scope' => $locationScope,
             'calc_breakdown' => [
-                'method' => 'comparables_v2_excel',
+                'method' => 'comparables_v3_market_template',
                 'filters' => [
                     'status' => 'active',
                     'price_type' => 'sale',
@@ -141,12 +141,13 @@ class ValuationService
                 'data_origin' => [
                     'source' => 'listings',
                     'source_label' => 'Base interna de propiedades publicadas (tabla listings).',
-                    'used_for_calculation' => $usefulCount > 0,
+                    'used_for_calculation' => count($valuationComparables) > 0,
                     'records_found' => $rawCount,
-                    'records_used' => $usefulCount,
+                    'records_used' => count($valuationComparables),
                 ],
                 'comparables_raw' => $rawCount,
                 'comparables_useful' => $usefulCount,
+                'comparables_used_for_value' => count($valuationComparables),
                 'ppu_stats' => [
                     'ppu_promedio' => round($ppuPromedio, 2),
                     'ppu_aplicado' => $ppuAplicado,
@@ -157,17 +158,18 @@ class ValuationService
                     'negotiation' => $this->valuationMath->negotiationFactor(),
                     'location' => $this->valuationMath->locationFactor(),
                     'zone' => $this->valuationMath->zoneFactor(),
+                    'age_factor_mode' => 'disabled_for_comparable_due_to_missing_data',
                 ],
                 'formula' => [
                     'ppu_homologado' => 'PPU_bruto × Zona × Ubicación × Superficie × Edad × Equipamiento × Negociación',
-                    'ppu_aplicado' => 'ROUND(AVERAGE(PPUs_homologados), -1)',
+                    'ppu_aplicado' => 'ROUND(AVERAGE(PPUs_homologados_top3), -1)',
                     'estimated_value' => 'ROUNDUP(PPU_aplicado × m²_construcción, -3)',
                     'estimated_low' => 'ROUNDUP(PPU_aplicado × 0.9 × m²_construcción, -3)',
                     'estimated_high' => 'ROUNDUP(PPU_aplicado × 1.1 × m²_construcción, -3)',
                 ],
                 'human_steps' => $this->buildHumanSteps(
                     $rawCount,
-                    $usefulCount,
+                    count($valuationComparables),
                     $locationScope,
                     $ppuPromedio,
                     $ppuAplicado,
@@ -175,7 +177,7 @@ class ValuationService
                     $estimatedValue,
                 ),
                 'advisor_detail_steps' => $this->buildAdvisorSteps(
-                    $usefulCount,
+                    count($valuationComparables),
                     $rawCount,
                     $locationScope,
                     $ppuPromedio,
@@ -475,13 +477,8 @@ class ValuationService
                 );
             }
 
-            // Age factor
+            // No age/conservation adjustment for comparable because source data is missing/inconsistent.
             $ageFactor = 1.0;
-            if ($comp['age_years'] !== null) {
-                $compConservation = $this->valuationMath->inferConservationLevel($comp['age_years']);
-                $compDepr = $this->valuationMath->depreciation($comp['age_years'], $compConservation);
-                $ageFactor = $this->valuationMath->ageHomologationFactor($subjectDepr, $compDepr);
-            }
 
             $fre = $zoneFactor * $locationFactor * $surfaceFactor * $ageFactor * $equipmentFactor * $negotiationFactor;
             $ppuHomologado = $ppuBruto * $fre;
