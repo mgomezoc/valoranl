@@ -700,6 +700,9 @@
         $(this).closest('.vn-input-icon, .col-md-6, .col-md-12, .col-12').find('.invalid-feedback').remove();
     });
 
+    // ─── Exponer renderResult globalmente para home-new.js ───
+    window.VNHandleEstimateResponse = renderResult;
+
     // ─── Event: form submit ───
     $form.on('submit', function (event) {
         event.preventDefault();

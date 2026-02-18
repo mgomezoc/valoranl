@@ -1,0 +1,835 @@
+/* ═══════════════════════════════════════════════════════════════
+   HOME NEW — Estilo tipo Romina (mapa izquierda + form card derecha)
+   Archivo: public/assets/css/home-new.css
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Variables locales ─── */
+:root {
+    --vnm-gold:       #e6d7b8;
+    --vnm-gold-lt:    #f0e8ce;
+    --vnm-teal:       #2c7a8b;
+    --vnm-teal-dim:   rgba(44,122,139,0.25);
+    --vnm-dark:       #0d2f3a;
+    --vnm-deep:       #002b36;
+    --vnm-white:      #f2f5f7;
+    --vnm-radius:     14px;
+    --vnm-transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+
+    /* Select2 — zona mapa (fondos claros) */
+    --s2-light-bg:    #ffffff;
+    --s2-light-text:  #12303a;
+    --s2-light-bdr:   rgba(18,48,58,0.25);
+    --s2-light-ph:    #6b8a93;
+
+    /* Select2 — zona form card (fondos oscuros) */
+    --s2-dark-bg:     rgba(255,255,255,0.07);
+    --s2-dark-text:   #e6d7b8;
+    --s2-dark-bdr:    rgba(230,215,184,0.22);
+    --s2-dark-ph:     rgba(230,215,184,0.4);
+
+    /* Dropdown (siempre oscuro, teleportado al body) */
+    --s2-dd-bg:       #0a2430;
+    --s2-dd-bdr:      rgba(44,122,139,0.5);
+    --s2-dd-text:     #dbe7ec;
+    --s2-dd-hl:       rgba(44,122,139,0.4);
+    --s2-dd-sel:      rgba(44,122,139,0.2);
+}
+
+/* ═══════════════════════════════════════════════
+   HERO — logo + texto + stats
+   ═══════════════════════════════════════════════ */
+.vn-home-hero {
+    background:
+        linear-gradient(135deg, #001e28 0%, #013342 55%, #01434f 100%);
+    padding: 40px 0 36px;
+    border-bottom: 1px solid rgba(230,215,184,0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Decoración de fondo sutil */
+.vn-home-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 60% 80% at 80% 50%, rgba(44,122,139,0.12), transparent),
+        radial-gradient(circle at 5% 90%, rgba(230,215,184,0.04), transparent 40%);
+    pointer-events: none;
+}
+
+/* Layout interno: logo+texto izquierda, stats derecha */
+.vn-hero-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+    position: relative;
+    z-index: 1;
+}
+
+.vn-hero-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Logo */
+.vn-hero-logo {
+    height: 48px;
+    width: auto;
+    display: block;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.35));
+}
+
+.vn-hero-title {
+    font-size: clamp(1.55rem, 2.8vw, 2.2rem);
+    font-weight: 800;
+    color: var(--vnm-gold);
+    line-height: 1.18;
+    margin: 0 0 6px 0;
+    letter-spacing: -0.02em;
+}
+
+.vn-hero-subtitle {
+    font-size: 0.93rem;
+    color: rgba(242,245,247,0.65);
+    max-width: 480px;
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* Stats lado derecho */
+.vn-hero-stats {
+    display: flex;
+    gap: 14px;
+    flex-shrink: 0;
+}
+
+.vn-hero-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(230,215,184,0.14);
+    border-radius: 14px;
+    padding: 14px 18px;
+    min-width: 96px;
+    transition: border-color 0.22s ease, background 0.22s ease;
+}
+
+.vn-hero-stat:hover {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(44,122,139,0.4);
+}
+
+.vn-hero-stat__num {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--vnm-gold);
+    line-height: 1;
+    letter-spacing: -0.03em;
+}
+
+.vn-hero-stat__label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: rgba(242,245,247,0.48);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 5px;
+    line-height: 1.3;
+}
+
+/* ═══════════════════════════════════════════════
+   MAIN SECTION
+   ═══════════════════════════════════════════════ */
+.vn-main-section {
+    background:
+        radial-gradient(circle at 8% 28%, rgba(44,122,139,0.16), transparent 48%),
+        radial-gradient(circle at 92% 72%, rgba(74,85,104,0.18), transparent 44%),
+        #011e26;
+    padding: 36px 0 64px;
+    min-height: 80vh;
+}
+
+/* ─── Two-column layout ─── */
+.vn-layout-grid {
+    display: grid;
+    grid-template-columns: 1fr 428px;
+    gap: 28px;
+    align-items: start;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* ═══════════════════════════════════════════════
+   MAP COLUMN
+   ═══════════════════════════════════════════════ */
+.vn-map-col {
+    position: sticky;
+    top: 88px;
+}
+
+.vn-map-wrapper {
+    background: #0b2a34;
+    border: 1px solid rgba(230,215,184,0.18);
+    border-radius: 18px;
+    /* NO overflow:hidden aquí — lo necesitamos para que Select2 no se corte */
+    /* overflow gestionado por los hijos directos */
+    box-shadow: 0 14px 44px rgba(0,0,0,0.32);
+}
+
+/* Zona de inputs (encima del mapa) con overflow:hidden */
+.vn-map-inputs {
+    border-radius: 18px 18px 0 0;
+    overflow: visible;   /* permite que Select2 sobresalga */
+    padding: 0;
+}
+
+.vn-map-label {
+    padding: 13px 18px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(230,215,184,0.65);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    border-bottom: 1px solid rgba(230,215,184,0.1);
+    border-radius: 18px 18px 0 0;
+    background: rgba(0,0,0,0.15);
+}
+
+.vn-map-label i { color: var(--vnm-gold); margin-right: 6px; }
+
+/* Rows de campos sobre el mapa */
+.vn-location-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 12px 14px 0;
+}
+
+.vn-location-row--2col {
+    grid-template-columns: 1fr 1fr;
+    padding-bottom: 10px;
+}
+
+.vn-loc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+/* El mapa propiamente */
+#vn-leaflet-map {
+    width: 100%;
+    height: 370px;
+    background: #1a3a44;
+    /* sin border-radius — el wrapper lo da */
+    display: block;
+}
+
+/* Status geocode */
+.vn-geocode-status {
+    padding: 6px 14px 8px;
+    font-size: 0.79rem;
+    font-weight: 500;
+    min-height: 24px;
+    border-radius: 0 0 18px 18px;
+}
+
+.vn-geocode-status.geocode-searching { color: #5bc8d8; }
+.vn-geocode-status.geocode-success   { color: #4ade80; }
+.vn-geocode-status.geocode-error     { color: #fbbf24; }
+
+/* Fila dirección */
+.vn-address-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.vn-address-row .vn-text-input { flex: 1; min-width: 0; }
+
+.vn-icon-btn {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border: 1px solid rgba(230,215,184,0.3);
+    border-radius: 8px;
+    background: rgba(230,215,184,0.08);
+    color: var(--vnm-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background var(--vnm-transition);
+    font-size: 0.9rem;
+}
+
+.vn-icon-btn:hover {
+    background: rgba(230,215,184,0.18);
+}
+
+/* ─── Altura base compartida entre inputs y Select2 ─── */
+:root {
+    --vn-input-h: 38px;   /* altura canónica para todos los controles */
+}
+
+/* ─── Text inputs (zona mapa — light) ─── */
+.vn-text-input {
+    width: 100%;
+    height: var(--vn-input-h);
+    padding: 0 11px;
+    border-radius: 8px;
+    font-size: 0.86rem;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color var(--vnm-transition), box-shadow var(--vnm-transition);
+    /* Dentro del mapa: light */
+    background: #ffffff;
+    color: var(--s2-light-text);
+    border: 1px solid var(--s2-light-bdr);
+}
+
+.vn-text-input::placeholder { color: var(--s2-light-ph); }
+
+.vn-text-input:focus {
+    border-color: var(--vnm-teal);
+    box-shadow: 0 0 0 3px rgba(44,122,139,0.18);
+}
+
+/* Text inputs dentro del form card — dark */
+.vn-text-input--dark {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.13);
+    color: var(--vnm-white);
+}
+
+.vn-text-input--dark::placeholder { color: rgba(242,245,247,0.32); }
+
+.vn-text-input--dark:focus {
+    border-color: rgba(44,122,139,0.65);
+    box-shadow: 0 0 0 3px rgba(44,122,139,0.16);
+    background: rgba(255,255,255,0.1);
+}
+
+/* ═══════════════════════════════════════════════
+   FORM COLUMN
+   ═══════════════════════════════════════════════ */
+.vn-form-card {
+    background: var(--vnm-dark);
+    border: 1px solid rgba(230,215,184,0.15);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 14px 44px rgba(0,0,0,0.38);
+}
+
+.vn-section-block {
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.055);
+}
+
+.vn-section-block:last-of-type { border-bottom: none; }
+
+.vn-section-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(230,215,184,0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    margin-bottom: 12px;
+}
+
+/* Labels comunes */
+.vn-field-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(242,245,247,0.6);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.vn-field-row  { margin-top: 12px; }
+
+.vn-m2-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.vn-m2-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Advanced fields — forzar grid 2 col aunque el padding reduzca el espacio */
+.vn-advanced-fields .vn-m2-row {
+    grid-template-columns: 1fr 1fr !important;
+    width: 100%;
+}
+
+/* ═══════════════════════════════════════════════
+   COUNTER CARDS
+   ═══════════════════════════════════════════════ */
+.vn-counters-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.vn-counter-card {
+    background: linear-gradient(135deg,
+        rgba(44,122,139,0.13) 0%,
+        rgba(255,255,255,0.035) 100%);
+    border: 1px solid rgba(44,122,139,0.28);
+    border-radius: 14px;
+    padding: 14px 10px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    transition: border-color var(--vnm-transition), box-shadow var(--vnm-transition);
+    user-select: none;
+}
+
+.vn-counter-card:hover {
+    border-color: rgba(44,122,139,0.52);
+    box-shadow: 0 4px 18px rgba(44,122,139,0.14);
+}
+
+.vn-counter-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(44,122,139,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    color: #7ee8f5;
+}
+
+.vn-counter-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: rgba(242,245,247,0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+    line-height: 1.25;
+}
+
+.vn-counter-controls {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.vn-counter-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    transition: all 0.16s ease;
+    flex-shrink: 0;
+}
+
+.vn-counter-btn--minus {
+    background: rgba(255,255,255,0.09);
+    color: rgba(242,245,247,0.65);
+    border-color: rgba(255,255,255,0.13);
+}
+
+.vn-counter-btn--minus:hover {
+    background: rgba(239,68,68,0.2);
+    color: #f87171;
+    border-color: rgba(239,68,68,0.4);
+}
+
+.vn-counter-btn--plus {
+    background: rgba(44,122,139,0.35);
+    color: #a8f0f8;
+    border-color: rgba(44,122,139,0.55);
+}
+
+.vn-counter-btn--plus:hover {
+    background: rgba(44,122,139,0.65);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(44,122,139,0.38);
+}
+
+.vn-counter-value {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--vnm-gold);
+    min-width: 26px;
+    text-align: center;
+    line-height: 1;
+    display: inline-block;
+}
+
+@keyframes vnCounterPop {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.4); color: #f0e8ce; }
+    100% { transform: scale(1); }
+}
+.vn-counter-pop { animation: vnCounterPop 0.2s ease; }
+
+/* ─── Advanced toggle ─── */
+.vn-advanced-block {
+    background: rgba(0,0,0,0.1);
+}
+
+.vn-advanced-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    color: rgba(230,215,184,0.65);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    transition: color var(--vnm-transition);
+    gap: 8px;
+}
+
+.vn-advanced-toggle:hover { color: var(--vnm-gold); }
+
+.vn-chevron {
+    transition: transform 0.24s ease;
+    margin-left: auto;
+}
+.vn-chevron.open { transform: rotate(180deg); }
+
+.vn-advanced-fields {
+    padding-top: 2px;
+    border-top: 1px solid rgba(255,255,255,0.055);
+}
+
+/* ─── Form errors ─── */
+.vn-form-errors {
+    margin: 4px 18px 14px;
+    padding: 10px 13px;
+    border-radius: 10px;
+    background: rgba(239,68,68,0.11);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: #fca5a5;
+    font-size: 0.83rem;
+    line-height: 1.5;
+}
+
+/* ─── Submit button ─── */
+.vn-submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: calc(100% - 36px);
+    margin: 14px 18px 18px;
+    padding: 13px 22px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, #e6822e 0%, #c85f15 100%);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: all 0.24s ease;
+    box-shadow: 0 4px 20px rgba(200,95,21,0.35);
+}
+
+.vn-submit-btn:hover {
+    background: linear-gradient(135deg, #f09242 0%, #d86e20 100%);
+    box-shadow: 0 6px 26px rgba(200,95,21,0.5);
+    transform: translateY(-1px);
+}
+
+.vn-submit-btn:active { transform: translateY(0); }
+
+.vn-submit-btn:disabled {
+    opacity: 0.52;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ═══════════════════════════════════════════════
+   SELECT 2 — ZONA MAPA (LIGHT)
+   Selector de alta especificidad para NO afectar
+   los select2 del form card ni los globales.
+   ═══════════════════════════════════════════════ */
+
+/* Contenedor selection dentro del map-wrapper */
+.vn-map-wrapper .select2-container--default .select2-selection--single {
+    background: var(--s2-light-bg);
+    border: 1px solid var(--s2-light-bdr);
+    border-radius: 8px;
+    height: var(--vn-input-h);
+    transition: border-color var(--vnm-transition), box-shadow var(--vnm-transition);
+}
+
+.vn-map-wrapper .select2-container--default.select2-container--focus
+    .select2-selection--single,
+.vn-map-wrapper .select2-container--default.select2-container--open
+    .select2-selection--single {
+    border-color: var(--vnm-teal);
+    box-shadow: 0 0 0 3px rgba(44,122,139,0.18);
+}
+
+.vn-map-wrapper .select2-container--default
+    .select2-selection--single .select2-selection__rendered {
+    color: var(--s2-light-text);
+    font-size: 0.86rem;
+    font-weight: 500;
+    line-height: var(--vn-input-h);
+    padding-left: 11px;
+    padding-right: 28px;
+}
+
+.vn-map-wrapper .select2-container--default
+    .select2-selection--single .select2-selection__placeholder {
+    color: var(--s2-light-ph);
+}
+
+.vn-map-wrapper .select2-container--default
+    .select2-selection--single .select2-selection__arrow {
+    height: calc(var(--vn-input-h) - 2px);
+    right: 6px;
+}
+
+.vn-map-wrapper .select2-container--default
+    .select2-selection--single .select2-selection__arrow b {
+    border-color: #6b8a93 transparent transparent transparent;
+}
+
+/* X de clear */
+.vn-map-wrapper .select2-container--default
+    .select2-selection--single .select2-selection__clear {
+    color: #6b8a93;
+    margin-right: 4px;
+}
+
+/* ═══════════════════════════════════════════════
+   SELECT 2 — ZONA FORM CARD (DARK)
+   Clase .vn2-dark añadida por JS al contenedor
+   ═══════════════════════════════════════════════ */
+
+.vn-form-card .select2-container--default .select2-selection--single,
+.select2-container.vn2-dark .select2-selection--single {
+    background: var(--s2-dark-bg);
+    border: 1px solid var(--s2-dark-bdr);
+    border-radius: 8px;
+    height: var(--vn-input-h);
+    transition: border-color var(--vnm-transition), box-shadow var(--vnm-transition);
+}
+
+.vn-form-card .select2-container--default.select2-container--focus
+    .select2-selection--single,
+.vn-form-card .select2-container--default.select2-container--open
+    .select2-selection--single,
+.select2-container.vn2-dark.select2-container--focus .select2-selection--single,
+.select2-container.vn2-dark.select2-container--open .select2-selection--single {
+    border-color: rgba(44,122,139,0.7);
+    box-shadow: 0 0 0 3px rgba(44,122,139,0.18);
+}
+
+.vn-form-card .select2-container--default
+    .select2-selection--single .select2-selection__rendered,
+.select2-container.vn2-dark .select2-selection--single .select2-selection__rendered {
+    color: var(--s2-dark-text);
+    font-size: 0.86rem;
+    font-weight: 500;
+    line-height: var(--vn-input-h);
+    padding-left: 11px;
+    padding-right: 28px;
+}
+
+.vn-form-card .select2-container--default
+    .select2-selection--single .select2-selection__placeholder,
+.select2-container.vn2-dark .select2-selection--single .select2-selection__placeholder {
+    color: var(--s2-dark-ph);
+}
+
+.vn-form-card .select2-container--default
+    .select2-selection--single .select2-selection__arrow,
+.select2-container.vn2-dark .select2-selection--single .select2-selection__arrow {
+    height: calc(var(--vn-input-h) - 2px);
+    right: 6px;
+}
+
+.vn-form-card .select2-container--default
+    .select2-selection--single .select2-selection__arrow b,
+.select2-container.vn2-dark .select2-selection--single .select2-selection__arrow b {
+    border-color: rgba(230,215,184,0.45) transparent transparent transparent;
+}
+
+.vn-form-card .select2-container--default
+    .select2-selection--single .select2-selection__clear,
+.select2-container.vn2-dark .select2-selection--single .select2-selection__clear {
+    color: rgba(230,215,184,0.5);
+}
+
+/* ═══════════════════════════════════════════════
+   SELECT 2 — DROPDOWN (siempre oscuro,
+   teleportado fuera del wrapper por dropdownParent)
+   ═══════════════════════════════════════════════ */
+
+/* Contenedor dropdown global */
+.select2-container--default .select2-dropdown {
+    background: var(--s2-dd-bg);
+    border: 1px solid var(--s2-dd-bdr);
+    border-radius: 10px;
+    box-shadow: 0 10px 32px rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+
+/* Búsqueda */
+.select2-container--default .select2-search--dropdown {
+    padding: 8px 10px 4px;
+    background: var(--s2-dd-bg);
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 6px;
+    color: var(--vnm-white);
+    font-size: 0.84rem;
+    padding: 6px 10px;
+    outline: none;
+    width: 100%;
+    transition: border-color var(--vnm-transition);
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field:focus {
+    border-color: rgba(44,122,139,0.6);
+    box-shadow: 0 0 0 2px rgba(44,122,139,0.15);
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field::placeholder {
+    color: rgba(242,245,247,0.38);
+}
+
+/* Opciones */
+.select2-container--default .select2-results__options {
+    max-height: 220px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(44,122,139,0.4) transparent;
+}
+
+.select2-container--default .select2-results__option {
+    color: var(--s2-dd-text);
+    font-size: 0.85rem;
+    padding: 8px 13px;
+    transition: background 0.14s ease;
+}
+
+.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+    background: var(--s2-dd-hl);
+    color: #fff;
+}
+
+.select2-container--default .select2-results__option[aria-selected="true"] {
+    background: var(--s2-dd-sel);
+    color: var(--vnm-gold);
+    font-weight: 600;
+}
+
+.select2-container--default .select2-results__option[aria-disabled="true"] {
+    color: rgba(219,231,236,0.35);
+}
+
+/* "No results" / "Elige municipio primero" */
+.select2-container--default .select2-results__message {
+    color: rgba(219,231,236,0.5);
+    font-size: 0.82rem;
+    padding: 10px 13px;
+    font-style: italic;
+}
+
+/* Scrollbar webkit */
+.select2-container--default .select2-results__options::-webkit-scrollbar {
+    width: 5px;
+}
+.select2-container--default .select2-results__options::-webkit-scrollbar-thumb {
+    background: rgba(44,122,139,0.45);
+    border-radius: 4px;
+}
+
+/* ─── Dropdown cuando viene de map-wrapper vs form-card ───
+   El dropdown se teleporta según dropdownParent.
+   Cuando el dropdownParent es .vn-map-wrapper, el dropdown
+   queda DENTRO del wrapper y necesita ancho completo.
+   Cuando es .vn-form-card, idem.
+   El JS ya hace dropdownParent correcto; el z-index cubre el mapa. */
+
+.vn-map-wrapper .select2-dropdown,
+.vn-form-card   .select2-dropdown {
+    z-index: 1100;
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════ */
+@media (max-width: 1100px) {
+    .vn-layout-grid {
+        grid-template-columns: 1fr 390px;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 920px) {
+    .vn-layout-grid {
+        grid-template-columns: 1fr;
+    }
+    .vn-map-col { position: static; }
+    #vn-leaflet-map { height: 300px; }
+    .vn-home-hero { padding: 30px 0 24px; }
+    .vn-main-section { padding: 24px 0 48px; }
+    /* Hero responsive: stats debajo */
+    .vn-hero-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 24px;
+    }
+    .vn-hero-stats {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    .vn-hero-stat { min-width: 80px; padding: 10px 14px; }
+}
+
+@media (max-width: 600px) {
+    .vn-layout-grid { padding: 0 12px; }
+    .vn-location-row { grid-template-columns: 1fr 1fr; }
+    .vn-location-row .vn-loc-field:last-child { grid-column: span 2; }
+    .vn-location-row--2col { grid-template-columns: 1fr; }
+    .vn-counters-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .vn-m2-row { grid-template-columns: 1fr; }
+    /* Advanced fields: mantener 2 col incluso en mobile */
+    .vn-advanced-fields .vn-m2-row { grid-template-columns: 1fr 1fr !important; gap: 8px; }
+    .vn-hero-title { font-size: 1.4rem; }
+    .vn-hero-stats { gap: 8px; }
+    .vn-hero-stat { min-width: 70px; padding: 8px 10px; }
+    .vn-hero-stat__num { font-size: 1.3rem; }
+    #vn-leaflet-map { height: 250px; }
+}

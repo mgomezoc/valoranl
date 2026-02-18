@@ -2,274 +2,276 @@
 
 <?= $this->section('title') ?><?= esc($pageTitle ?? 'ValoraNL') ?><?= $this->endSection() ?>
 
+<?= $this->section('styles') ?>
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<!-- Select2 -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
-<section class="cs_gray_bg cs_p96_66 valuation-page">
+
+<!-- ═══ HERO HEADER ═══ -->
+<section class="vn-home-hero">
     <div class="container">
-        <div class="row cs_gap_y_24">
-            <!-- Help sidebar (moves to top on mobile via CSS order) -->
-            <div class="col-lg-4 vn-help-sidebar d-none d-lg-block">
-                <div class="cs_card cs_style_1 p-4 valuation-card vn-help-card">
-                    <h2 class="cs_fs_29 mb-3">¿Qué recibirás?</h2>
-                    <div class="vn-help-item">
-                        <i class="fa-solid fa-coins"></i>
-                        <span>Valor estimado en MXN basado en comparables reales.</span>
-                    </div>
-                    <div class="vn-help-item">
-                        <i class="fa-solid fa-chart-line"></i>
-                        <span>Rango bajo/alto (±10%) según metodología avalúo.</span>
-                    </div>
-                    <div class="vn-help-item">
-                        <i class="fa-solid fa-shield-halved"></i>
-                        <span>Nivel de confianza (0–100) con explicación.</span>
-                    </div>
-                    <div class="vn-help-item">
-                        <i class="fa-solid fa-table-list"></i>
-                        <span>Top comparables con factores de homologación.</span>
-                    </div>
-                    <div class="vn-help-item">
-                        <i class="fa-solid fa-layer-group"></i>
-                        <span>Desglose residual (si proporcionas valor unitario de construcción).</span>
-                    </div>
-                    <p class="mb-0 mt-3" style="font-size:0.85rem; opacity:0.7;"><strong>Disclaimer:</strong> Esta estimación es referencial y no sustituye un avalúo profesional certificado.</p>
+        <div class="vn-hero-inner">
+
+            <!-- Izquierda: logo + copy -->
+            <div class="vn-hero-brand">
+                <div class="vn-hero-copy">
+                    <h1 class="vn-hero-title">Estima el valor de tu inmueble</h1>
+                    <p class="vn-hero-subtitle">Obtiene un estimado comercial al instante, basado en comparables reales de Nuevo León.</p>
                 </div>
             </div>
 
-            <!-- Help banner for mobile (collapsible) -->
-            <div class="col-12 d-lg-none">
-                <div class="cs_card cs_style_1 p-3 valuation-card">
-                    <a class="vn-coords-toggle w-100 d-flex justify-content-between" data-bs-toggle="collapse" href="#mobile-help-content" role="button" aria-expanded="false">
-                        <span><i class="fa-solid fa-circle-info me-2"></i>¿Qué recibirás?</span>
-                        <i class="fa-solid fa-chevron-down"></i>
-                    </a>
-                    <div class="collapse mt-3" id="mobile-help-content">
-                        <div class="vn-help-item"><i class="fa-solid fa-coins"></i><span>Valor estimado en MXN basado en comparables reales.</span></div>
-                        <div class="vn-help-item"><i class="fa-solid fa-chart-line"></i><span>Rango bajo/alto (±10%).</span></div>
-                        <div class="vn-help-item"><i class="fa-solid fa-shield-halved"></i><span>Nivel de confianza (0–100).</span></div>
-                        <div class="vn-help-item"><i class="fa-solid fa-table-list"></i><span>Top comparables con homologación.</span></div>
-                        <p class="mb-0 mt-2" style="font-size:0.82rem; opacity:0.65;"><strong>Disclaimer:</strong> Estimación referencial, no sustituye avalúo profesional.</p>
-                    </div>
+            <!-- Derecha: stats decorativas -->
+            <div class="vn-hero-stats">
+                <div class="vn-hero-stat">
+                    <span class="vn-hero-stat__num">+8K</span>
+                    <span class="vn-hero-stat__label">Compa&shy;rables</span>
+                </div>
+                <div class="vn-hero-stat">
+                    <span class="vn-hero-stat__num">51</span>
+                    <span class="vn-hero-stat__label">Munici&shy;pios</span>
+                </div>
+                <div class="vn-hero-stat">
+                    <span class="vn-hero-stat__num">~2s</span>
+                    <span class="vn-hero-stat__label">Tiempo resp.</span>
                 </div>
             </div>
 
-            <!-- Form with stepper -->
-            <div class="col-lg-8">
-                <div class="cs_card cs_style_1 p-4 valuation-card" id="valuation-form">
-                    <h1 class="cs_fs_42 mb-2">Calculadora de valuación inmobiliaria</h1>
-                    <p class="mb-4">Completa los datos en 3 sencillos pasos y recibe un valor estimado por comparables reales en Nuevo León.</p>
-
-                    <!-- Stepper indicator -->
-                    <div class="vn-stepper">
-                        <div class="vn-stepper__step active" data-step="1">
-                            <div class="vn-stepper__circle">1</div>
-                            <div class="vn-stepper__label">Ubicación</div>
-                        </div>
-                        <div class="vn-stepper__line"></div>
-                        <div class="vn-stepper__step" data-step="2">
-                            <div class="vn-stepper__circle">2</div>
-                            <div class="vn-stepper__label">Características</div>
-                        </div>
-                        <div class="vn-stepper__line"></div>
-                        <div class="vn-stepper__step" data-step="3">
-                            <div class="vn-stepper__circle">3</div>
-                            <div class="vn-stepper__label">Calcular</div>
-                        </div>
-                    </div>
-
-                    <form id="valuation-form-element" method="post" action="<?= url_to('valuation.estimate') ?>" novalidate>
-                        <?= csrf_field() ?>
-                        <input type="hidden" id="property_type" name="property_type" value="casa">
-
-                        <!-- ═══ STEP 1: Ubicación ═══ -->
-                        <div class="vn-step-panel active" id="step-1">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Tipo de propiedad</label>
-                                    <div class="vn-input-icon">
-                                        <i class="fa-solid fa-house"></i>
-                                        <input type="text" class="form-control" value="Casa" readonly>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="municipality" class="form-label">Municipio *</label>
-                                    <div class="vn-input-icon">
-                                        <i class="fa-solid fa-map-location-dot"></i>
-                                        <input id="municipality" name="municipality" type="text" class="form-control" list="municipality-options" placeholder="Ej. Monterrey" required>
-                                        <datalist id="municipality-options"></datalist>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <label for="colony" class="form-label">Colonia *</label>
-                                    <div class="vn-input-icon">
-                                        <i class="fa-solid fa-location-dot"></i>
-                                        <input id="colony" name="colony" type="text" class="form-control" list="colony-options" placeholder="Ej. Cumbres 2do Sector" required>
-                                        <datalist id="colony-options"></datalist>
-                                    </div>
-                                    <small class="text-muted">Puedes escribir cualquier colonia; también se sugieren colonias del municipio elegido.</small>
-                                </div>
-                                <div class="col-12">
-                                    <label for="address" class="form-label">Dirección completa *</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fa-solid fa-road"></i></span>
-                                        <input id="address" name="address" type="text" class="form-control"
-                                               placeholder="Ej. Av. Revolución 1200, Cumbres, Monterrey" required>
-                                        <button type="button" id="geocode-btn" class="btn vn-btn vn-btn--primary">
-                                            <i class="fa-solid fa-magnifying-glass-location"></i> Buscar
-                                        </button>
-                                    </div>
-                                    <small class="text-muted">La dirección se usa para obtener coordenadas precisas automáticamente.</small>
-                                    <div id="geocode-status" class="mt-1" style="display:none;"></div>
-                                </div>
-                                <div class="col-6">
-                                    <label for="lat" class="form-label">Latitud *</label>
-                                    <input id="lat" name="lat" type="number" step="0.000001" class="form-control"
-                                           readonly required placeholder="Auto-detectada">
-                                </div>
-                                <div class="col-6">
-                                    <label for="lng" class="form-label">Longitud *</label>
-                                    <input id="lng" name="lng" type="number" step="0.000001" class="form-control"
-                                           readonly required placeholder="Auto-detectada">
-                                </div>
-                                <div class="col-12">
-                                    <a href="#" id="manual-coords-toggle" class="vn-coords-toggle">
-                                        <i class="fa-solid fa-pen"></i> Ingresar coordenadas manualmente
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="vn-step-nav">
-                                <div></div>
-                                <button type="button" class="vn-btn vn-btn--primary" data-step-next="2">
-                                    Siguiente <i class="fa-solid fa-arrow-right"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- ═══ STEP 2: Características ═══ -->
-                        <div class="vn-step-panel" id="step-2">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="area_construction_m2" class="form-label">m² construcción *</label>
-                                    <div class="vn-input-icon">
-                                        <i class="fa-solid fa-ruler-combined"></i>
-                                        <input id="area_construction_m2" name="area_construction_m2" type="number" min="1" step="0.01" class="form-control" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="area_land_m2" class="form-label">m² terreno</label>
-                                    <div class="vn-input-icon">
-                                        <i class="fa-solid fa-vector-square"></i>
-                                        <input id="area_land_m2" name="area_land_m2" type="number" min="0" step="0.01" class="form-control" placeholder="Mejora precisión">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="age_years" class="form-label">Edad del inmueble (años) *</label>
-                                    <div class="vn-input-icon">
-                                        <i class="fa-solid fa-calendar-days"></i>
-                                        <input id="age_years" name="age_years" type="number" min="0" max="100" step="1" class="form-control" required placeholder="Ej. 15">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="conservation_level" class="form-label">Estado de conservación *</label>
-                                    <div class="vn-input-icon">
-                                        <i class="fa-solid fa-star-half-stroke"></i>
-                                        <select id="conservation_level" name="conservation_level" class="form-select" required>
-                                            <option value="">Se infiere de la edad</option>
-                                            <option value="10">10 - Nuevo</option>
-                                            <option value="9">9 - Excelente</option>
-                                            <option value="8">8 - Muy bueno</option>
-                                            <option value="7">7 - Bueno</option>
-                                            <option value="6">6 - Regular bueno</option>
-                                            <option value="5">5 - Regular</option>
-                                            <option value="4">4 - Regular malo</option>
-                                            <option value="3">3 - Malo</option>
-                                            <option value="2">2 - Muy malo</option>
-                                            <option value="1">1 - Ruina</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-3">
-                                    <label for="bedrooms" class="form-label"><i class="fa-solid fa-bed me-1"></i> Recámaras</label>
-                                    <input id="bedrooms" name="bedrooms" type="number" min="0" step="1" class="form-control">
-                                </div>
-                                <div class="col-6 col-md-3">
-                                    <label for="bathrooms" class="form-label"><i class="fa-solid fa-bath me-1"></i> Baños</label>
-                                    <input id="bathrooms" name="bathrooms" type="number" min="0" step="0.5" class="form-control">
-                                </div>
-                                <div class="col-6 col-md-3">
-                                    <label for="half_bathrooms" class="form-label"><i class="fa-solid fa-toilet me-1"></i> Medios baños</label>
-                                    <input id="half_bathrooms" name="half_bathrooms" type="number" min="0" step="1" class="form-control">
-                                </div>
-                                <div class="col-6 col-md-3">
-                                    <label for="parking" class="form-label"><i class="fa-solid fa-car me-1"></i> Estac.</label>
-                                    <input id="parking" name="parking" type="number" min="0" step="1" class="form-control">
-                                </div>
-                            </div>
-                            <div class="vn-step-nav">
-                                <button type="button" class="vn-btn vn-btn--secondary" data-step-prev="1">
-                                    <i class="fa-solid fa-arrow-left"></i> Anterior
-                                </button>
-                                <button type="button" class="vn-btn vn-btn--primary" data-step-next="3">
-                                    Siguiente <i class="fa-solid fa-arrow-right"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- ═══ STEP 3: Avanzado + Calcular ═══ -->
-                        <div class="vn-step-panel" id="step-3">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="construction_unit_value" class="form-label">Valor unitario construcción ($/m²)</label>
-                                    <div class="vn-input-icon">
-                                        <i class="fa-solid fa-hammer"></i>
-                                        <input id="construction_unit_value" name="construction_unit_value" type="number" min="0" max="50000" step="0.01" class="form-control" placeholder="Ej. 7500">
-                                    </div>
-                                    <small class="text-muted">Permite calcular el desglose residual (terreno vs. construcción).</small>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="equipment_value" class="form-label">Equipamiento (MXN)</label>
-                                    <div class="vn-input-icon">
-                                        <i class="fa-solid fa-couch"></i>
-                                        <input id="equipment_value" name="equipment_value" type="number" min="0" max="5000000" step="0.01" class="form-control" placeholder="Ej. 20000">
-                                    </div>
-                                    <small class="text-muted">Valor del equipamiento adicional del inmueble.</small>
-                                </div>
-                            </div>
-
-                            <!-- Summary mini card -->
-                            <div class="vn-summary-mini mt-4" id="step-summary">
-                                <strong style="font-size:0.82rem; text-transform:uppercase; letter-spacing:0.04em; opacity:0.6;">Resumen de tu propiedad</strong>
-                                <div class="vn-summary-mini__row mt-2">
-                                    <span class="vn-summary-mini__label">Municipio</span>
-                                    <span class="vn-summary-mini__value" id="summary-municipality">—</span>
-                                </div>
-                                <div class="vn-summary-mini__row">
-                                    <span class="vn-summary-mini__label">Colonia</span>
-                                    <span class="vn-summary-mini__value" id="summary-colony">—</span>
-                                </div>
-                                <div class="vn-summary-mini__row">
-                                    <span class="vn-summary-mini__label">Construcción</span>
-                                    <span class="vn-summary-mini__value" id="summary-area">— m²</span>
-                                </div>
-                                <div class="vn-summary-mini__row">
-                                    <span class="vn-summary-mini__label">Edad / Conservación</span>
-                                    <span class="vn-summary-mini__value" id="summary-age">—</span>
-                                </div>
-                            </div>
-
-                            <div id="valuation-form-errors" class="alert alert-danger d-none mt-3 mb-0"></div>
-
-                            <div class="vn-step-nav">
-                                <button type="button" class="vn-btn vn-btn--secondary" data-step-prev="2">
-                                    <i class="fa-solid fa-arrow-left"></i> Anterior
-                                </button>
-                                <button id="valuation-submit" type="submit" class="vn-btn vn-btn--primary vn-btn--lg">
-                                    <i class="fa-solid fa-calculator"></i> Calcular valuación
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
         </div>
+    </div>
+</section>
+
+<!-- ═══ MAIN FORM SECTION ═══ -->
+<section class="vn-main-section">
+    <div class="container-fluid px-0 px-md-3">
+        <div class="vn-layout-grid">
+
+            <!-- ── LEFT: Map ── -->
+            <div class="vn-map-col">
+                <div class="vn-map-wrapper">
+                    <div class="vn-map-label">
+                        <i class="fa-solid fa-location-dot"></i> Ubica tu inmueble en el mapa
+                    </div>
+                    <!-- Location inputs above map -->
+                    <div class="vn-location-row">
+                        <div class="vn-loc-field">
+                            <label class="vn-field-label">Área metropolitana</label>
+                            <select id="area_metro" class="vn-select2" style="width:100%">
+                                <option value="">Selecciona...</option>
+                                <option value="zmm" selected>Zona Metropolitana de Monterrey</option>
+                            </select>
+                        </div>
+                        <div class="vn-loc-field">
+                            <label class="vn-field-label">Municipio</label>
+                            <select id="municipality_select" class="vn-select2" style="width:100%">
+                                <option value="">Selecciona...</option>
+                            </select>
+                        </div>
+                        <div class="vn-loc-field">
+                            <label class="vn-field-label">Código postal</label>
+                            <input type="text" id="zip_code" class="vn-text-input" placeholder="Ej. 64000" maxlength="5">
+                        </div>
+                    </div>
+                    <div class="vn-location-row vn-location-row--2col">
+                        <div class="vn-loc-field">
+                            <label class="vn-field-label">Colonia</label>
+                            <select id="colony_select" class="vn-select2" style="width:100%">
+                                <option value="">Selecciona...</option>
+                            </select>
+                        </div>
+                        <div class="vn-loc-field">
+                            <label class="vn-field-label">Dirección</label>
+                            <div class="vn-address-row">
+                                <input type="text" id="address" class="vn-text-input" placeholder="Ej. Senda del triunfo 6312">
+                                <button type="button" id="geocode-btn" class="vn-icon-btn" title="Buscar en mapa">
+                                    <i class="fa-solid fa-magnifying-glass-location"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Leaflet Map -->
+                    <div id="vn-leaflet-map"></div>
+                    <div id="geocode-status" class="vn-geocode-status" style="display:none;"></div>
+                    <input type="hidden" id="lat" name="lat">
+                    <input type="hidden" id="lng" name="lng">
+                </div>
+            </div>
+
+            <!-- ── RIGHT: Property Form ── -->
+            <div class="vn-form-col">
+                <div class="vn-form-card">
+
+                    <!-- Property type selector -->
+                    <div class="vn-section-block">
+                        <label class="vn-field-label">Selecciona tu inmueble</label>
+                        <select id="property_type_select" class="vn-select2-dark" style="width:100%">
+                            <option value="casa" selected>🏠 Casa</option>
+                            <option value="departamento">🏢 Departamento</option>
+                            <option value="terreno">🌿 Terreno</option>
+                        </select>
+                    </div>
+
+                    <!-- Describe tu inmueble -->
+                    <div class="vn-section-block">
+                        <div class="vn-section-title">Describe tu inmueble</div>
+
+                        <!-- Edad -->
+                        <div class="vn-field-row">
+                            <label class="vn-field-label">Edad en años</label>
+                            <select id="age_years" class="vn-select2-dark" style="width:100%">
+                                <option value="">Selecciona...</option>
+                                <?php for ($i = 0; $i <= 60; $i++): ?>
+                                    <option value="<?= $i ?>"><?= $i === 0 ? 'Nuevo (0 años)' : $i . ($i === 1 ? ' año' : ' años') ?></option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+
+                        <!-- ── Counter Cards ── -->
+                        <div class="vn-counters-grid">
+
+                            <!-- Recámaras -->
+                            <div class="vn-counter-card">
+                                <div class="vn-counter-icon">
+                                    <i class="fa-solid fa-bed"></i>
+                                </div>
+                                <div class="vn-counter-label">Recámaras</div>
+                                <div class="vn-counter-controls">
+                                    <button type="button" class="vn-counter-btn vn-counter-btn--minus" data-target="bedrooms">
+                                        <i class="fa-solid fa-minus"></i>
+                                    </button>
+                                    <span class="vn-counter-value" id="bedrooms-display">1</span>
+                                    <button type="button" class="vn-counter-btn vn-counter-btn--plus" data-target="bedrooms">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </button>
+                                </div>
+                                <input type="hidden" id="bedrooms" name="bedrooms" value="1">
+                            </div>
+
+                            <!-- Baños completos -->
+                            <div class="vn-counter-card">
+                                <div class="vn-counter-icon">
+                                    <i class="fa-solid fa-shower"></i>
+                                </div>
+                                <div class="vn-counter-label">Baños completos</div>
+                                <div class="vn-counter-controls">
+                                    <button type="button" class="vn-counter-btn vn-counter-btn--minus" data-target="bathrooms">
+                                        <i class="fa-solid fa-minus"></i>
+                                    </button>
+                                    <span class="vn-counter-value" id="bathrooms-display">1</span>
+                                    <button type="button" class="vn-counter-btn vn-counter-btn--plus" data-target="bathrooms">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </button>
+                                </div>
+                                <input type="hidden" id="bathrooms" name="bathrooms" value="1">
+                            </div>
+
+                            <!-- Medios baños -->
+                            <div class="vn-counter-card">
+                                <div class="vn-counter-icon">
+                                    <i class="fa-solid fa-toilet"></i>
+                                </div>
+                                <div class="vn-counter-label">Medios baños</div>
+                                <div class="vn-counter-controls">
+                                    <button type="button" class="vn-counter-btn vn-counter-btn--minus" data-target="half_bathrooms">
+                                        <i class="fa-solid fa-minus"></i>
+                                    </button>
+                                    <span class="vn-counter-value" id="half_bathrooms-display">0</span>
+                                    <button type="button" class="vn-counter-btn vn-counter-btn--plus" data-target="half_bathrooms">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </button>
+                                </div>
+                                <input type="hidden" id="half_bathrooms" name="half_bathrooms" value="0">
+                            </div>
+
+                            <!-- Estacionamientos -->
+                            <div class="vn-counter-card">
+                                <div class="vn-counter-icon">
+                                    <i class="fa-solid fa-car"></i>
+                                </div>
+                                <div class="vn-counter-label">Estacionamientos</div>
+                                <div class="vn-counter-controls">
+                                    <button type="button" class="vn-counter-btn vn-counter-btn--minus" data-target="parking">
+                                        <i class="fa-solid fa-minus"></i>
+                                    </button>
+                                    <span class="vn-counter-value" id="parking-display">0</span>
+                                    <button type="button" class="vn-counter-btn vn-counter-btn--plus" data-target="parking">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </button>
+                                </div>
+                                <input type="hidden" id="parking" name="parking" value="0">
+                            </div>
+
+                        </div><!-- /vn-counters-grid -->
+
+                        <!-- m² row -->
+                        <div class="vn-m2-row">
+                            <div class="vn-m2-field">
+                                <label class="vn-field-label">Construcción m²</label>
+                                <input type="number" id="area_construction_m2" name="area_construction_m2" class="vn-text-input vn-text-input--dark" placeholder="Ej. 120" min="1" step="1" required>
+                            </div>
+                            <div class="vn-m2-field">
+                                <label class="vn-field-label">Terreno m²</label>
+                                <input type="number" id="area_land_m2" name="area_land_m2" class="vn-text-input vn-text-input--dark" placeholder="Ej. 200" min="0" step="1">
+                            </div>
+                        </div>
+
+                        <!-- Conservación -->
+                        <div class="vn-field-row">
+                            <label class="vn-field-label">Estado de conservación</label>
+                            <select id="conservation_level" name="conservation_level" class="vn-select2-dark" style="width:100%">
+                                <option value="">Se infiere de la edad</option>
+                                <option value="10">10 — Nuevo</option>
+                                <option value="9">9 — Excelente</option>
+                                <option value="8">8 — Muy bueno</option>
+                                <option value="7">7 — Bueno</option>
+                                <option value="6">6 — Regular bueno</option>
+                                <option value="5">5 — Regular</option>
+                                <option value="4">4 — Regular malo</option>
+                                <option value="3">3 — Malo</option>
+                                <option value="2">2 — Muy malo</option>
+                                <option value="1">1 — Ruina</option>
+                            </select>
+                        </div>
+
+                    </div><!-- /vn-section-block -->
+
+                    <!-- Valores avanzados (opcionales) -->
+                    <div class="vn-section-block vn-advanced-block">
+                        <button type="button" class="vn-advanced-toggle" id="toggle-advanced">
+                            <i class="fa-solid fa-sliders me-2"></i> Opciones avanzadas
+                            <i class="fa-solid fa-chevron-down vn-chevron ms-auto"></i>
+                        </button>
+                        <div id="advanced-fields" style="display:none;" class="vn-advanced-fields">
+                            <div class="vn-m2-row mt-3">
+                                <div class="vn-m2-field">
+                                    <label class="vn-field-label">Valor unit. construcción ($/m²)</label>
+                                    <input type="number" id="construction_unit_value" name="construction_unit_value" class="vn-text-input vn-text-input--dark" placeholder="Ej. 7500" min="0" max="50000" step="1">
+                                </div>
+                                <div class="vn-m2-field">
+                                    <label class="vn-field-label">Equipamiento (MXN)</label>
+                                    <input type="number" id="equipment_value" name="equipment_value" class="vn-text-input vn-text-input--dark" placeholder="Ej. 20000" min="0" max="5000000" step="1">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Errors -->
+                    <div id="valuation-form-errors" class="vn-form-errors d-none"></div>
+
+                    <!-- Submit -->
+                    <button type="button" id="valuation-submit" class="vn-submit-btn">
+                        <i class="fa-solid fa-calculator me-2"></i> Continuar
+                    </button>
+
+                </div><!-- /vn-form-card -->
+            </div><!-- /vn-form-col -->
+
+        </div><!-- /vn-layout-grid -->
     </div>
 </section>
 
@@ -409,26 +411,11 @@
                     </h2>
                     <div id="bd-method" class="accordion-collapse collapse" data-bs-parent="#breakdown-accordion">
                         <div class="accordion-body">
-                            <div class="vn-breakdown-item">
-                                <span class="vn-breakdown-label">Método</span>
-                                <span class="vn-breakdown-value" id="calc-method">—</span>
-                            </div>
-                            <div class="vn-breakdown-item">
-                                <span class="vn-breakdown-label">Zona considerada</span>
-                                <span class="vn-breakdown-value" id="calc-scope">—</span>
-                            </div>
-                            <div class="vn-breakdown-item">
-                                <span class="vn-breakdown-label">Propiedades encontradas / usadas</span>
-                                <span class="vn-breakdown-value" id="calc-counts">—</span>
-                            </div>
-                            <div class="vn-breakdown-item">
-                                <span class="vn-breakdown-label">¿Se usaron propiedades de la base?</span>
-                                <span class="vn-breakdown-value" id="calc-db-usage">—</span>
-                            </div>
-                            <div class="vn-breakdown-item">
-                                <span class="vn-breakdown-label">Origen de los datos</span>
-                                <span class="vn-breakdown-value" id="calc-data-origin">—</span>
-                            </div>
+                            <div class="vn-breakdown-item"><span class="vn-breakdown-label">Método</span><span class="vn-breakdown-value" id="calc-method">—</span></div>
+                            <div class="vn-breakdown-item"><span class="vn-breakdown-label">Zona considerada</span><span class="vn-breakdown-value" id="calc-scope">—</span></div>
+                            <div class="vn-breakdown-item"><span class="vn-breakdown-label">Propiedades encontradas / usadas</span><span class="vn-breakdown-value" id="calc-counts">—</span></div>
+                            <div class="vn-breakdown-item"><span class="vn-breakdown-label">¿Se usaron propiedades de la base?</span><span class="vn-breakdown-value" id="calc-db-usage">—</span></div>
+                            <div class="vn-breakdown-item"><span class="vn-breakdown-label">Origen de los datos</span><span class="vn-breakdown-value" id="calc-data-origin">—</span></div>
                         </div>
                     </div>
                 </div>
@@ -440,14 +427,8 @@
                     </h2>
                     <div id="bd-ppu" class="accordion-collapse collapse" data-bs-parent="#breakdown-accordion">
                         <div class="accordion-body">
-                            <div class="vn-breakdown-item">
-                                <span class="vn-breakdown-label">PPU promedio homologado</span>
-                                <span class="vn-breakdown-value" id="calc-ppu-weighted">—</span>
-                            </div>
-                            <div class="vn-breakdown-item">
-                                <span class="vn-breakdown-label">PPU aplicado (redondeado)</span>
-                                <span class="vn-breakdown-value" id="calc-ppu-adjusted">—</span>
-                            </div>
+                            <div class="vn-breakdown-item"><span class="vn-breakdown-label">PPU promedio homologado</span><span class="vn-breakdown-value" id="calc-ppu-weighted">—</span></div>
+                            <div class="vn-breakdown-item"><span class="vn-breakdown-label">PPU aplicado (redondeado)</span><span class="vn-breakdown-value" id="calc-ppu-adjusted">—</span></div>
                         </div>
                     </div>
                 </div>
@@ -459,14 +440,8 @@
                     </h2>
                     <div id="bd-ai" class="accordion-collapse collapse" data-bs-parent="#breakdown-accordion">
                         <div class="accordion-body">
-                            <div class="vn-breakdown-item">
-                                <span class="vn-breakdown-label">Datos enviados a IA</span>
-                                <span class="vn-breakdown-value" id="calc-ai-inputs">—</span>
-                            </div>
-                            <div class="vn-breakdown-item">
-                                <span class="vn-breakdown-label">Estado de consulta IA</span>
-                                <span class="vn-breakdown-value" id="calc-ai-status">—</span>
-                            </div>
+                            <div class="vn-breakdown-item"><span class="vn-breakdown-label">Datos enviados a IA</span><span class="vn-breakdown-value" id="calc-ai-inputs">—</span></div>
+                            <div class="vn-breakdown-item"><span class="vn-breakdown-label">Estado de consulta IA</span><span class="vn-breakdown-value" id="calc-ai-status">—</span></div>
                         </div>
                     </div>
                 </div>
@@ -500,36 +475,38 @@
         <!-- Comparables section -->
         <div class="mb-4 wow fadeInUp" data-wow-duration="0.5s" data-wow-delay="0.3s" id="comparables-section">
             <h3 class="vn-section-heading"><i class="fa-solid fa-table-list me-2"></i>Top comparables</h3>
-
-            <!-- Desktop table -->
             <div class="table-responsive d-none d-md-block">
                 <table class="table vn-comparables-table" id="comparables-table">
                     <thead>
-                    <tr>
-                        <th>Propiedad</th>
-                        <th>Precio</th>
-                        <th>m²</th>
-                        <th>$/m²</th>
-                        <th>$/m² Homol.</th>
-                        <th>FRe</th>
-                        <th>Ubicación</th>
-                        <th>Fuente</th>
-                    </tr>
+                        <tr>
+                            <th>Propiedad</th>
+                            <th>Precio</th>
+                            <th>m²</th>
+                            <th>$/m²</th>
+                            <th>$/m² Homol.</th>
+                            <th>FRe</th>
+                            <th>Ubicación</th>
+                            <th>Fuente</th>
+                        </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
             </div>
-
-            <!-- Mobile cards -->
             <div class="vn-comparable-cards d-md-none" id="comparables-cards"></div>
         </div>
 
     </div>
 </section>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
-<script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<!-- Select2 -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
     window.ValoraNLEstimateConfig = {
         estimateUrl: <?= json_encode(url_to('valuation.estimate')) ?>,
@@ -539,4 +516,5 @@
     };
 </script>
 <script src="<?= base_url('assets/js/home-valuation.js') ?>"></script>
+<script src="<?= base_url('assets/js/home-new.js') ?>"></script>
 <?= $this->endSection() ?>
