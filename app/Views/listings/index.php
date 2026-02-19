@@ -185,6 +185,21 @@
                     <div class="text-center mt-4">
                         <button type="button" class="vn-btn vn-btn--secondary" id="load-more-btn">Cargar mas</button>
                     </div>
+
+                    <noscript>
+                        <div class="mt-4">
+                            <h4>Listado indexable de propiedades</h4>
+                            <ul>
+                                <?php foreach (($listings ?? []) as $listing): ?>
+                                    <li>
+                                        <a href="<?= url_to('listings.show', (int) ($listing['id'] ?? 0)) ?>">
+                                            <?= esc(($listing['title'] ?? '') !== '' ? $listing['title'] : ('Propiedad #' . ($listing['id'] ?? ''))) ?>
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    </noscript>
                 </section>
             </div>
         </div>

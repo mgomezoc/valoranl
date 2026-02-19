@@ -92,6 +92,7 @@ class Listings extends BaseController
 
             $listings[] = [
                 'id' => (int) $row['id'],
+                'detail_url' => url_to('listings.show', (int) $row['id']),
                 'source_id' => isset($row['source_id']) ? (int) $row['source_id'] : null,
                 'source_listing_id' => (string) ($row['source_listing_id'] ?? ''),
                 'source_name' => $sourceName,
@@ -138,9 +139,26 @@ class Listings extends BaseController
         ksort($priceTypes);
         ksort($sourceNames);
 
+        $listSchema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'CollectionPage',
+            'name' => 'Catalogo de propiedades en Nuevo Leon',
+            'url' => current_url(),
+            'inLanguage' => 'es-MX',
+            'about' => 'Propiedades residenciales en Nuevo Leon',
+            'mainEntity' => [
+                '@type' => 'ItemList',
+                'numberOfItems' => count($listings),
+            ],
+        ];
+
         return view('listings/index', [
             'pageTitle' => 'ValoraNL | Catalogo de propiedades',
             'metaDescription' => 'Explora todas las propiedades de la base de ValoraNL con filtros, busqueda avanzada y mapa interactivo.',
+            'canonicalUrl' => current_url(),
+            'ogType' => 'website',
+            'ogImage' => base_url('assets/img/property_img_1.jpg'),
+            'schemaJsonLd' => $listSchema,
             'listings' => $listings,
             'filterOptions' => [
                 'municipalities' => array_keys($municipalities),
@@ -158,6 +176,96 @@ class Listings extends BaseController
                 'land_min' => $minLand,
                 'land_max' => $maxLand,
             ],
+        ]);
+    }
+
+    public function show(int $id)
+    {
+        $listing = $this->listingModel->builder()
+            ->select(
+                'listings.*, sources.source_name'
+            )
+            ->join('sources', 'sources.id = listings.source_id', 'left')
+            ->where('listings.id', $id)
+            ->get()
+            ->getRowArray();
+
+        if (! is_array($listing)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $price = isset($listing['price_amount']) ? (float) $listing['price_amount'] : null;
+        $const = isset($listing['area_construction_m2']) ? (float) $listing['area_construction_m2'] : null;
+        $listing['price_per_m2'] = ($price !== null && $const !== null && $const > 0) ? ($price / $const) : null;
+
+        $images = json_decode((string) ($listing['images_json'] ?? '[]'), true);
+        $coverImage = (is_array($images) && isset($images[0]) && is_string($images[0]) && $images[0] !== '')
+            ? $images[0]
+            : base_url('assets/img/single_property_1.jpg');
+
+        $locationParts = [
+            trim((string) ($listing['street'] ?? '')),
+            trim((string) ($listing['colony'] ?? '')),
+            trim((string) ($listing['municipality'] ?? '')),
+            trim((string) ($listing['state'] ?? '')),
+        ];
+        $location = implode(', ', array_values(array_filter($locationParts, static fn($v): bool => $v !== '')));
+        $title = trim((string) ($listing['title'] ?? ''));
+        $pageTitle = $title !== '' ? $title . ' | ValoraNL' : 'Detalle de propiedad | ValoraNL';
+        $description = trim((string) ($listing['description'] ?? ''));
+        $metaDescription = $description !== ''
+            ? mb_substr($description, 0, 155)
+            : ('Ficha de propiedad en ' . ($location !== '' ? $location : 'Nuevo Leon') . ' con precio, caracteristicas y ubicacion.');
+
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'RealEstateListing',
+            'name' => $title !== '' ? $title : ('Propiedad #' . $id),
+            'url' => current_url(),
+            'description' => $metaDescription,
+            'dateModified' => ! empty($listing['updated_at']) ? gmdate('c', strtotime((string) $listing['updated_at'])) : gmdate('c'),
+            'image' => [$coverImage],
+            'offers' => [
+                '@type' => 'Offer',
+                'priceCurrency' => (string) ($listing['currency'] ?? 'MXN'),
+                'price' => $price,
+            ],
+            'itemOffered' => [
+                '@type' => 'House',
+                'floorSize' => [
+                    '@type' => 'QuantitativeValue',
+                    'value' => $const,
+                    'unitCode' => 'MTK',
+                ],
+                'numberOfRooms' => isset($listing['bedrooms']) ? (int) $listing['bedrooms'] : null,
+                'numberOfBathroomsTotal' => isset($listing['bathrooms']) ? (float) $listing['bathrooms'] : null,
+                'address' => [
+                    '@type' => 'PostalAddress',
+                    'streetAddress' => (string) ($listing['street'] ?? ''),
+                    'addressLocality' => (string) ($listing['municipality'] ?? ''),
+                    'addressRegion' => (string) ($listing['state'] ?? ''),
+                    'postalCode' => (string) ($listing['postal_code'] ?? ''),
+                    'addressCountry' => (string) ($listing['country'] ?? 'MX'),
+                ],
+            ],
+        ];
+
+        if (isset($listing['lat'], $listing['lng']) && $listing['lat'] !== null && $listing['lng'] !== null) {
+            $schema['itemOffered']['geo'] = [
+                '@type' => 'GeoCoordinates',
+                'latitude' => (float) $listing['lat'],
+                'longitude' => (float) $listing['lng'],
+            ];
+        }
+
+        return view('listings/detail', [
+            'listing' => $listing,
+            'pageTitle' => $pageTitle,
+            'metaDescription' => $metaDescription,
+            'canonicalUrl' => current_url(),
+            'ogType' => 'product',
+            'ogImage' => $coverImage,
+            'schemaJsonLd' => $schema,
         ]);
     }
 }

@@ -1,12 +1,35 @@
 <!DOCTYPE html>
 <html class="no-js" lang="es">
 <head>
+    <?php
+        $resolvedTitle = trim((string) ($this->renderSection('title') ?: ($pageTitle ?? 'ValoraNL')));
+        $resolvedDescription = trim((string) ($metaDescription ?? 'ValoraNL: inteligencia de datos inmobiliarios en Nuevo Leon.'));
+        $resolvedCanonical = trim((string) ($canonicalUrl ?? current_url()));
+        $resolvedOgType = trim((string) ($ogType ?? 'website'));
+        $resolvedOgImage = trim((string) ($ogImage ?? base_url('assets/img/valoranl/logo-valoranl.png')));
+        $resolvedRobots = trim((string) ($metaRobots ?? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'));
+    ?>
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="<?= esc($metaDescription ?? 'ValoraNL: inteligencia de datos inmobiliarios en Nuevo León.') ?>">
+    <meta name="description" content="<?= esc($resolvedDescription) ?>">
+    <meta name="robots" content="<?= esc($resolvedRobots) ?>">
+    <link rel="canonical" href="<?= esc($resolvedCanonical) ?>">
+    <link rel="alternate" hreflang="es-MX" href="<?= esc($resolvedCanonical) ?>">
+    <link rel="alternate" hreflang="x-default" href="<?= esc($resolvedCanonical) ?>">
+    <meta property="og:locale" content="es_MX">
+    <meta property="og:type" content="<?= esc($resolvedOgType) ?>">
+    <meta property="og:title" content="<?= esc($resolvedTitle) ?>">
+    <meta property="og:description" content="<?= esc($resolvedDescription) ?>">
+    <meta property="og:url" content="<?= esc($resolvedCanonical) ?>">
+    <meta property="og:image" content="<?= esc($resolvedOgImage) ?>">
+    <meta property="og:site_name" content="ValoraNL">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= esc($resolvedTitle) ?>">
+    <meta name="twitter:description" content="<?= esc($resolvedDescription) ?>">
+    <meta name="twitter:image" content="<?= esc($resolvedOgImage) ?>">
     <link rel="icon" href="<?= base_url('assets/img/icons/favicon.svg') ?>">
-    <title><?= $this->renderSection('title') ?: esc($pageTitle ?? 'ValoraNL') ?></title>
+    <title><?= esc($resolvedTitle) ?></title>
     <link rel="stylesheet" href="<?= base_url('assets/css/bootstrap.min.css') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/fontawesome.min.css') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/slick.min.css') ?>">
@@ -17,6 +40,10 @@
     <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/valoranl-theme.css') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/home-new.css') ?>">
+    <?php if (isset($schemaJsonLd) && is_array($schemaJsonLd)): ?>
+    <script type="application/ld+json"><?= json_encode($schemaJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
+    <?php endif; ?>
+    <?= $this->renderSection('head') ?>
     <?= $this->renderSection('styles') ?>
 </head>
 <body>

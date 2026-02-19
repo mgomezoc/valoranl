@@ -20,9 +20,10 @@
 
             <!-- Izquierda: logo + copy -->
             <div class="vn-hero-brand">
+                <hr class="vn-hero-divider">
                 <div class="vn-hero-copy">
-                    <h1 class="vn-hero-title">Estima el valor de tu inmueble</h1>
-                    <p class="vn-hero-subtitle">Obtiene un estimado comercial al instante, basado en comparables reales de Nuevo León.</p>
+                    <h1 class="vn-hero-title">Estima el valor de<br><strong>tu inmueble</strong></h1>
+                    <p class="vn-hero-subtitle">Obtén un estimado comercial al instante, basado en comparables reales de Nuevo León.</p>
                 </div>
             </div>
 

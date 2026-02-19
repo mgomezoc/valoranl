@@ -234,7 +234,8 @@
                         <div>${metrics[2]}</div>
                     </div>
                     <div class="listing-card__actions">
-                        <button type="button" class="vn-btn vn-btn--primary js-open-detail" data-id="${item.id}">Ver detalle</button>
+                        <button type="button" class="vn-btn vn-btn--primary js-open-detail" data-id="${item.id}">Vista rapida</button>
+                        ${item.detail_url ? `<a href="${item.detail_url}" class="vn-btn vn-btn--secondary">Ficha SEO</a>` : ''}
                         ${item.url ? `<a href="${item.url}" target="_blank" rel="noopener" class="vn-btn vn-btn--secondary">Fuente</a>` : ''}
                     </div>
                 </div>
@@ -329,7 +330,8 @@
                 <strong>${str(item.title) || `Propiedad #${item.id}`}</strong><br>
                 ${money(item.price_amount)}<br>
                 ${str(item.colony)}, ${str(item.municipality)}<br>
-                <button type="button" class="vn-btn vn-btn--secondary js-open-detail-map" data-id="${item.id}">Ver detalle</button>
+                <button type="button" class="vn-btn vn-btn--secondary js-open-detail-map" data-id="${item.id}">Vista rapida</button>
+                ${item.detail_url ? `<br><a href="${item.detail_url}" class="vn-btn vn-btn--secondary">Ficha SEO</a>` : ''}
             `;
             marker.bindPopup(popupHtml);
             mapLayer.addLayer(marker);

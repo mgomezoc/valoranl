@@ -19,7 +19,7 @@
 
 <section class="cs_p96_66">
     <div class="container">
-        <a href="<?= url_to('home.index') ?>" class="cs_btn cs_style_1 cs_type_1 cs_mb_24">
+        <a href="<?= url_to('listings.index') ?>" class="cs_btn cs_style_1 cs_type_1 cs_mb_24">
             <span class="cs_btn_text">← Volver al listado</span>
         </a>
 

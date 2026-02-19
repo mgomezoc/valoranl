@@ -1,69 +1,100 @@
 /* ═══════════════════════════════════════════════════════════════
-   HOME NEW — Estilo tipo Romina (mapa izquierda + form card derecha)
+   HOME NEW — ValoraNL · estética inspirada en SID (sage, aire, tipografía ligera)
    Archivo: public/assets/css/home-new.css
    ═══════════════════════════════════════════════════════════════ */
 
-/* ─── Variables locales ─── */
+/* ─── Fuente elegante (DM Sans — ligera como la tipografía de SID) ─── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
+
+/* ─── Variables ─── */
 :root {
-    --vnm-gold:       #e6d7b8;
-    --vnm-gold-lt:    #f0e8ce;
-    --vnm-teal:       #2c7a8b;
-    --vnm-teal-dim:   rgba(44,122,139,0.25);
-    --vnm-dark:       #0d2f3a;
-    --vnm-deep:       #002b36;
-    --vnm-white:      #f2f5f7;
-    --vnm-radius:     14px;
-    --vnm-transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+    /* Paleta base ValoraNL */
+    --vnm-gold:        #e6d7b8;
+    --vnm-gold-lt:     #f0e8ce;
+    --vnm-teal:        #2c7a8b;
+    --vnm-dark:        #0d2f3a;
+    --vnm-deep:        #001e28;
+    --vnm-white:       #f2f5f7;
 
-    /* Select2 — zona mapa (fondos claros) */
-    --s2-light-bg:    #ffffff;
-    --s2-light-text:  #12303a;
-    --s2-light-bdr:   rgba(18,48,58,0.25);
-    --s2-light-ph:    #6b8a93;
+    /* Sage green de SID como acento elegante */
+    --sid-sage:        #7a9e8e;
+    --sid-sage-lt:     #a8c5b8;
+    --sid-sage-dk:     #2d4a3e;
 
-    /* Select2 — zona form card (fondos oscuros) */
-    --s2-dark-bg:     rgba(255,255,255,0.07);
-    --s2-dark-text:   #e6d7b8;
-    --s2-dark-bdr:    rgba(230,215,184,0.22);
-    --s2-dark-ph:     rgba(230,215,184,0.4);
+    /* Altura canónica de inputs */
+    --vn-input-h:      40px;
 
-    /* Dropdown (siempre oscuro, teleportado al body) */
-    --s2-dd-bg:       #0a2430;
-    --s2-dd-bdr:      rgba(44,122,139,0.5);
-    --s2-dd-text:     #dbe7ec;
-    --s2-dd-hl:       rgba(44,122,139,0.4);
-    --s2-dd-sel:      rgba(44,122,139,0.2);
+    /* Tipografía */
+    --vn-font:         'DM Sans', 'Segoe UI', system-ui, sans-serif;
+    --vn-tracking-cap: 0.08em;
+
+    /* Transición */
+    --vn-ease:         0.22s cubic-bezier(0.4,0,0.2,1);
+
+    /* Select2 mapa */
+    --s2-light-bg:     #ffffff;
+    --s2-light-text:   #12303a;
+    --s2-light-bdr:    rgba(18,48,58,0.2);
+    --s2-light-ph:     rgba(18,48,58,0.38);
+
+    /* Select2 form */
+    --s2-dark-bg:      rgba(255,255,255,0.06);
+    --s2-dark-text:    #e6d7b8;
+    --s2-dark-bdr:     rgba(230,215,184,0.2);
+    --s2-dark-ph:      rgba(230,215,184,0.38);
+
+    /* Select2 dropdown */
+    --s2-dd-bg:        #0a2430;
+    --s2-dd-bdr:       rgba(122,158,142,0.4);
+    --s2-dd-text:      #dbe7ec;
+    --s2-dd-hl:        rgba(122,158,142,0.35);
+    --s2-dd-sel:       rgba(122,158,142,0.18);
+}
+
+/* ─── Font base ─── */
+.vn-home-hero,
+.vn-main-section {
+    font-family: var(--vn-font);
 }
 
 /* ═══════════════════════════════════════════════
-   HERO — logo + texto + stats
+   HERO
    ═══════════════════════════════════════════════ */
 .vn-home-hero {
-    background:
-        linear-gradient(135deg, #001e28 0%, #013342 55%, #01434f 100%);
-    padding: 40px 0 36px;
-    border-bottom: 1px solid rgba(230,215,184,0.1);
+    background: linear-gradient(160deg, #001e28 0%, #013342 52%, #01434f 100%);
+    padding: 52px 0 44px;
+    border-bottom: 1px solid rgba(122,158,142,0.15);
     position: relative;
     overflow: hidden;
 }
 
-/* Decoración de fondo sutil */
+/* Patrón de puntos sutil (inspirado en SID) */
 .vn-home-hero::before {
     content: '';
     position: absolute;
     inset: 0;
-    background:
-        radial-gradient(ellipse 60% 80% at 80% 50%, rgba(44,122,139,0.12), transparent),
-        radial-gradient(circle at 5% 90%, rgba(230,215,184,0.04), transparent 40%);
+    background-image: radial-gradient(circle, rgba(122,158,142,0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
     pointer-events: none;
+    z-index: 0;
 }
 
-/* Layout interno: logo+texto izquierda, stats derecha */
+.vn-home-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 55% 70% at 85% 40%, rgba(44,122,139,0.1), transparent),
+        radial-gradient(ellipse 40% 60% at 10% 80%, rgba(45,74,62,0.14), transparent);
+    pointer-events: none;
+    z-index: 0;
+}
+
 .vn-hero-inner {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 32px;
+    gap: 40px;
     position: relative;
     z-index: 1;
 }
@@ -71,40 +102,58 @@
 .vn-hero-brand {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
     flex: 1;
     min-width: 0;
 }
 
-/* Logo */
 .vn-hero-logo {
-    height: 48px;
+    height: 44px;
     width: auto;
     display: block;
-    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.35));
+    filter: drop-shadow(0 1px 6px rgba(0,0,0,0.3));
 }
 
+/* Línea divisora sage */
+.vn-hero-divider {
+    width: 40px;
+    height: 1px;
+    background: var(--sid-sage);
+    border: none;
+    margin: 0;
+    opacity: 0.65;
+}
+
+/* Tipografía ligera — clave del look SID */
 .vn-hero-title {
-    font-size: clamp(1.55rem, 2.8vw, 2.2rem);
-    font-weight: 800;
-    color: var(--vnm-gold);
-    line-height: 1.18;
-    margin: 0 0 6px 0;
-    letter-spacing: -0.02em;
+    font-family: var(--vn-font);
+    font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+    font-weight: 300;
+    color: var(--vnm-gold-lt);
+    line-height: 1.22;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+}
+
+.vn-hero-title strong {
+    font-weight: 700;
+    color: #ffffff;
 }
 
 .vn-hero-subtitle {
-    font-size: 0.93rem;
-    color: rgba(242,245,247,0.65);
-    max-width: 480px;
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: rgba(242,245,247,0.55);
+    max-width: 460px;
     margin: 0;
-    line-height: 1.6;
+    line-height: 1.65;
+    letter-spacing: 0.01em;
 }
 
-/* Stats lado derecho */
+/* Stats cards minimalistas */
 .vn-hero-stats {
     display: flex;
-    gap: 14px;
+    gap: 12px;
     flex-shrink: 0;
 }
 
@@ -113,34 +162,34 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(230,215,184,0.14);
-    border-radius: 14px;
-    padding: 14px 18px;
-    min-width: 96px;
-    transition: border-color 0.22s ease, background 0.22s ease;
+    background: rgba(122,158,142,0.06);
+    border: 1px solid rgba(122,158,142,0.18);
+    border-radius: 12px;
+    padding: 16px 20px;
+    min-width: 92px;
+    transition: border-color var(--vn-ease), background var(--vn-ease);
 }
 
 .vn-hero-stat:hover {
-    background: rgba(255,255,255,0.07);
-    border-color: rgba(44,122,139,0.4);
+    background: rgba(122,158,142,0.1);
+    border-color: rgba(122,158,142,0.35);
 }
 
 .vn-hero-stat__num {
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: var(--vnm-gold);
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--sid-sage-lt);
     line-height: 1;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
 }
 
 .vn-hero-stat__label {
-    font-size: 0.68rem;
-    font-weight: 600;
-    color: rgba(242,245,247,0.48);
+    font-size: 0.64rem;
+    font-weight: 500;
+    color: rgba(242,245,247,0.42);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-top: 5px;
+    letter-spacing: var(--vn-tracking-cap);
+    margin-top: 6px;
     line-height: 1.3;
 }
 
@@ -149,22 +198,21 @@
    ═══════════════════════════════════════════════ */
 .vn-main-section {
     background:
-        radial-gradient(circle at 8% 28%, rgba(44,122,139,0.16), transparent 48%),
-        radial-gradient(circle at 92% 72%, rgba(74,85,104,0.18), transparent 44%),
+        radial-gradient(circle at 6% 25%, rgba(45,74,62,0.18), transparent 45%),
+        radial-gradient(circle at 94% 75%, rgba(44,122,139,0.12), transparent 42%),
         #011e26;
-    padding: 36px 0 64px;
+    padding: 40px 0 68px;
     min-height: 80vh;
 }
 
-/* ─── Two-column layout ─── */
 .vn-layout-grid {
     display: grid;
-    grid-template-columns: 1fr 428px;
+    grid-template-columns: 1fr 432px;
     gap: 28px;
     align-items: start;
     max-width: 1320px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 24px;
 }
 
 /* ═══════════════════════════════════════════════
@@ -176,36 +224,29 @@
 }
 
 .vn-map-wrapper {
-    background: #0b2a34;
-    border: 1px solid rgba(230,215,184,0.18);
-    border-radius: 18px;
-    /* NO overflow:hidden aquí — lo necesitamos para que Select2 no se corte */
-    /* overflow gestionado por los hijos directos */
-    box-shadow: 0 14px 44px rgba(0,0,0,0.32);
-}
-
-/* Zona de inputs (encima del mapa) con overflow:hidden */
-.vn-map-inputs {
-    border-radius: 18px 18px 0 0;
-    overflow: visible;   /* permite que Select2 sobresalga */
-    padding: 0;
+    background: rgba(10,36,46,0.92);
+    border: 1px solid rgba(122,158,142,0.18);
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.28);
 }
 
 .vn-map-label {
-    padding: 13px 18px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: rgba(230,215,184,0.65);
+    padding: 12px 16px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: rgba(168,197,184,0.7);
     text-transform: uppercase;
-    letter-spacing: 0.07em;
-    border-bottom: 1px solid rgba(230,215,184,0.1);
-    border-radius: 18px 18px 0 0;
-    background: rgba(0,0,0,0.15);
+    letter-spacing: var(--vn-tracking-cap);
+    border-bottom: 1px solid rgba(122,158,142,0.12);
+    border-radius: 16px 16px 0 0;
+    background: rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.vn-map-label i { color: var(--vnm-gold); margin-right: 6px; }
+.vn-map-label i { color: var(--sid-sage-lt); font-size: 0.8rem; }
 
-/* Rows de campos sobre el mapa */
 .vn-location-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -225,29 +266,25 @@
     min-width: 0;
 }
 
-/* El mapa propiamente */
 #vn-leaflet-map {
     width: 100%;
-    height: 370px;
+    height: 365px;
     background: #1a3a44;
-    /* sin border-radius — el wrapper lo da */
     display: block;
 }
 
-/* Status geocode */
 .vn-geocode-status {
     padding: 6px 14px 8px;
-    font-size: 0.79rem;
+    font-size: 0.78rem;
     font-weight: 500;
     min-height: 24px;
-    border-radius: 0 0 18px 18px;
+    border-radius: 0 0 16px 16px;
 }
 
-.vn-geocode-status.geocode-searching { color: #5bc8d8; }
+.vn-geocode-status.geocode-searching { color: var(--sid-sage-lt); }
 .vn-geocode-status.geocode-success   { color: #4ade80; }
 .vn-geocode-status.geocode-error     { color: #fbbf24; }
 
-/* Fila dirección */
 .vn-address-row {
     display: flex;
     gap: 6px;
@@ -258,121 +295,129 @@
 
 .vn-icon-btn {
     flex-shrink: 0;
-    width: 38px;
-    height: 38px;
-    border: 1px solid rgba(230,215,184,0.3);
+    width: var(--vn-input-h);
+    height: var(--vn-input-h);
+    border: 1px solid rgba(122,158,142,0.3);
     border-radius: 8px;
-    background: rgba(230,215,184,0.08);
-    color: var(--vnm-gold);
+    background: rgba(122,158,142,0.08);
+    color: var(--sid-sage-lt);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background var(--vnm-transition);
-    font-size: 0.9rem;
+    transition: background var(--vn-ease), border-color var(--vn-ease);
+    font-size: 0.88rem;
 }
 
 .vn-icon-btn:hover {
-    background: rgba(230,215,184,0.18);
+    background: rgba(122,158,142,0.18);
+    border-color: rgba(122,158,142,0.5);
 }
 
-/* ─── Altura base compartida entre inputs y Select2 ─── */
-:root {
-    --vn-input-h: 38px;   /* altura canónica para todos los controles */
-}
-
-/* ─── Text inputs (zona mapa — light) ─── */
+/* ─── Inputs — altura uniforme ─── */
 .vn-text-input {
     width: 100%;
     height: var(--vn-input-h);
-    padding: 0 11px;
-    border-radius: 8px;
+    padding: 0 10px;
+    font-family: var(--vn-font);
     font-size: 0.86rem;
+    font-weight: 400;
     outline: none;
     box-sizing: border-box;
-    transition: border-color var(--vnm-transition), box-shadow var(--vnm-transition);
-    /* Dentro del mapa: light */
-    background: #ffffff;
-    color: var(--s2-light-text);
-    border: 1px solid var(--s2-light-bdr);
+    transition: border-color var(--vn-ease), box-shadow var(--vn-ease);
+    background: rgba(255,255,255,0.9);
+    color: #12303a;
+    border: 1px solid rgba(18,48,58,0.18);
+    border-radius: 8px;
 }
 
-.vn-text-input::placeholder { color: var(--s2-light-ph); }
+.vn-text-input::placeholder {
+    color: var(--s2-light-ph);
+    font-weight: 300;
+}
 
 .vn-text-input:focus {
-    border-color: var(--vnm-teal);
-    box-shadow: 0 0 0 3px rgba(44,122,139,0.18);
+    border-color: var(--sid-sage);
+    box-shadow: 0 0 0 3px rgba(122,158,142,0.15);
+    background: #fff;
 }
 
-/* Text inputs dentro del form card — dark */
+/* Dark variant */
 .vn-text-input--dark {
-    background: rgba(255,255,255,0.07);
-    border-color: rgba(255,255,255,0.13);
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(230,215,184,0.16);
     color: var(--vnm-white);
 }
 
-.vn-text-input--dark::placeholder { color: rgba(242,245,247,0.32); }
+.vn-text-input--dark::placeholder {
+    color: rgba(242,245,247,0.3);
+    font-weight: 300;
+}
 
 .vn-text-input--dark:focus {
-    border-color: rgba(44,122,139,0.65);
-    box-shadow: 0 0 0 3px rgba(44,122,139,0.16);
-    background: rgba(255,255,255,0.1);
+    border-color: var(--sid-sage);
+    box-shadow: 0 0 0 3px rgba(122,158,142,0.12);
+    background: rgba(255,255,255,0.09);
 }
 
 /* ═══════════════════════════════════════════════
-   FORM COLUMN
+   FORM CARD
    ═══════════════════════════════════════════════ */
 .vn-form-card {
     background: var(--vnm-dark);
-    border: 1px solid rgba(230,215,184,0.15);
-    border-radius: 18px;
+    border: 1px solid rgba(122,158,142,0.18);
+    border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 14px 44px rgba(0,0,0,0.38);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.32);
+    font-family: var(--vn-font);
 }
 
 .vn-section-block {
     padding: 18px 18px 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.055);
+    border-bottom: 1px solid rgba(122,158,142,0.08);
 }
 
 .vn-section-block:last-of-type { border-bottom: none; }
 
 .vn-section-title {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: rgba(230,215,184,0.55);
+    font-size: 0.69rem;
+    font-weight: 600;
+    color: rgba(168,197,184,0.55);
     text-transform: uppercase;
-    letter-spacing: 0.09em;
-    margin-bottom: 12px;
+    letter-spacing: var(--vn-tracking-cap);
+    margin-bottom: 14px;
 }
 
-/* Labels comunes */
+/* Labels estilo SID */
 .vn-field-label {
     display: block;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: rgba(242,245,247,0.6);
-    margin-bottom: 4px;
+    font-size: 0.67rem;
+    font-weight: 600;
+    color: rgba(168,197,184,0.62);
+    margin-bottom: 5px;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: var(--vn-tracking-cap);
 }
 
-.vn-field-row  { margin-top: 12px; }
+.vn-map-wrapper .vn-field-label {
+    color: rgba(168,197,184,0.75);
+}
+
+.vn-field-row { margin-top: 14px; }
 
 .vn-m2-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    margin-top: 12px;
+    margin-top: 14px;
 }
 
 .vn-m2-field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
 }
 
-/* Advanced fields — forzar grid 2 col aunque el padding reduzca el espacio */
 .vn-advanced-fields .vn-m2-row {
     grid-template-columns: 1fr 1fr !important;
     width: 100%;
@@ -384,48 +429,46 @@
 .vn-counters-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 12px;
+    gap: 8px;
+    margin-top: 14px;
 }
 
 .vn-counter-card {
-    background: linear-gradient(135deg,
-        rgba(44,122,139,0.13) 0%,
-        rgba(255,255,255,0.035) 100%);
-    border: 1px solid rgba(44,122,139,0.28);
-    border-radius: 14px;
+    background: rgba(45,74,62,0.12);
+    border: 1px solid rgba(122,158,142,0.22);
+    border-radius: 12px;
     padding: 14px 10px 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 7px;
-    transition: border-color var(--vnm-transition), box-shadow var(--vnm-transition);
+    transition: border-color var(--vn-ease), background var(--vn-ease);
     user-select: none;
 }
 
 .vn-counter-card:hover {
-    border-color: rgba(44,122,139,0.52);
-    box-shadow: 0 4px 18px rgba(44,122,139,0.14);
+    border-color: rgba(122,158,142,0.45);
+    background: rgba(45,74,62,0.2);
 }
 
 .vn-counter-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: rgba(44,122,139,0.2);
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: rgba(122,158,142,0.15);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.95rem;
-    color: #7ee8f5;
+    font-size: 0.9rem;
+    color: var(--sid-sage-lt);
 }
 
 .vn-counter-label {
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: rgba(242,245,247,0.55);
+    font-size: 0.64rem;
+    font-weight: 600;
+    color: rgba(168,197,184,0.55);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: var(--vn-tracking-cap);
     text-align: center;
     line-height: 1.25;
 }
@@ -433,95 +476,97 @@
 .vn-counter-controls {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 10px;
 }
 
 .vn-counter-btn {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: 1px solid transparent;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.72rem;
-    transition: all 0.16s ease;
+    font-size: 0.68rem;
+    transition: all 0.15s ease;
     flex-shrink: 0;
 }
 
 .vn-counter-btn--minus {
-    background: rgba(255,255,255,0.09);
-    color: rgba(242,245,247,0.65);
-    border-color: rgba(255,255,255,0.13);
+    background: rgba(255,255,255,0.07);
+    color: rgba(242,245,247,0.55);
+    border-color: rgba(255,255,255,0.1);
 }
 
 .vn-counter-btn--minus:hover {
-    background: rgba(239,68,68,0.2);
+    background: rgba(239,68,68,0.18);
     color: #f87171;
-    border-color: rgba(239,68,68,0.4);
+    border-color: rgba(239,68,68,0.35);
 }
 
 .vn-counter-btn--plus {
-    background: rgba(44,122,139,0.35);
-    color: #a8f0f8;
-    border-color: rgba(44,122,139,0.55);
+    background: rgba(122,158,142,0.2);
+    color: var(--sid-sage-lt);
+    border-color: rgba(122,158,142,0.4);
 }
 
 .vn-counter-btn--plus:hover {
-    background: rgba(44,122,139,0.65);
+    background: rgba(122,158,142,0.42);
     color: #fff;
-    box-shadow: 0 0 12px rgba(44,122,139,0.38);
+    box-shadow: 0 0 10px rgba(122,158,142,0.28);
 }
 
 .vn-counter-value {
-    font-size: 1.45rem;
-    font-weight: 800;
+    font-size: 1.4rem;
+    font-weight: 700;
     color: var(--vnm-gold);
-    min-width: 26px;
+    min-width: 24px;
     text-align: center;
     line-height: 1;
     display: inline-block;
+    font-family: var(--vn-font);
 }
 
 @keyframes vnCounterPop {
     0%   { transform: scale(1); }
-    45%  { transform: scale(1.4); color: #f0e8ce; }
+    45%  { transform: scale(1.38); color: var(--sid-sage-lt); }
     100% { transform: scale(1); }
 }
 .vn-counter-pop { animation: vnCounterPop 0.2s ease; }
 
 /* ─── Advanced toggle ─── */
-.vn-advanced-block {
-    background: rgba(0,0,0,0.1);
-}
+.vn-advanced-block { background: rgba(0,0,0,0.08); }
 
 .vn-advanced-toggle {
     width: 100%;
     display: flex;
     align-items: center;
+    gap: 8px;
     background: transparent;
     border: none;
-    color: rgba(230,215,184,0.65);
-    font-size: 0.85rem;
-    font-weight: 600;
+    color: rgba(168,197,184,0.6);
+    font-size: 0.81rem;
+    font-weight: 500;
+    font-family: var(--vn-font);
     cursor: pointer;
     padding: 0;
-    transition: color var(--vnm-transition);
-    gap: 8px;
+    transition: color var(--vn-ease);
+    letter-spacing: 0.02em;
 }
 
-.vn-advanced-toggle:hover { color: var(--vnm-gold); }
+.vn-advanced-toggle:hover { color: var(--sid-sage-lt); }
 
 .vn-chevron {
-    transition: transform 0.24s ease;
+    transition: transform 0.22s ease;
     margin-left: auto;
+    font-size: 0.75rem;
 }
 .vn-chevron.open { transform: rotate(180deg); }
 
 .vn-advanced-fields {
     padding-top: 2px;
-    border-top: 1px solid rgba(255,255,255,0.055);
+    border-top: 1px solid rgba(122,158,142,0.08);
 }
 
 /* ─── Form errors ─── */
@@ -529,84 +574,86 @@
     margin: 4px 18px 14px;
     padding: 10px 13px;
     border-radius: 10px;
-    background: rgba(239,68,68,0.11);
-    border: 1px solid rgba(239,68,68,0.3);
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.28);
     color: #fca5a5;
-    font-size: 0.83rem;
-    line-height: 1.5;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    font-family: var(--vn-font);
 }
 
-/* ─── Submit button ─── */
+/* ─── Submit — pill estilo SID ─── */
 .vn-submit-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     width: calc(100% - 36px);
-    margin: 14px 18px 18px;
-    padding: 13px 22px;
-    border-radius: 12px;
-    border: none;
-    background: linear-gradient(135deg, #e6822e 0%, #c85f15 100%);
-    color: #fff;
-    font-size: 1rem;
-    font-weight: 700;
+    margin: 12px 18px 18px;
+    padding: 12px 24px;
+    border-radius: 50px;
+    border: 1.5px solid var(--sid-sage);
+    background: transparent;
+    color: var(--sid-sage-lt);
+    font-size: 0.92rem;
+    font-weight: 600;
+    font-family: var(--vn-font);
     cursor: pointer;
-    letter-spacing: 0.02em;
-    transition: all 0.24s ease;
-    box-shadow: 0 4px 20px rgba(200,95,21,0.35);
+    letter-spacing: 0.04em;
+    transition: all 0.26s ease;
 }
 
 .vn-submit-btn:hover {
-    background: linear-gradient(135deg, #f09242 0%, #d86e20 100%);
-    box-shadow: 0 6px 26px rgba(200,95,21,0.5);
+    background: var(--sid-sage);
+    color: #fff;
+    border-color: var(--sid-sage);
+    box-shadow: 0 4px 20px rgba(122,158,142,0.3);
     transform: translateY(-1px);
 }
 
 .vn-submit-btn:active { transform: translateY(0); }
 
 .vn-submit-btn:disabled {
-    opacity: 0.52;
+    opacity: 0.42;
     cursor: not-allowed;
     transform: none;
 }
 
 /* ═══════════════════════════════════════════════
-   SELECT 2 — ZONA MAPA (LIGHT)
-   Selector de alta especificidad para NO afectar
-   los select2 del form card ni los globales.
+   SELECT2 — ZONA MAPA (LIGHT)
    ═══════════════════════════════════════════════ */
-
-/* Contenedor selection dentro del map-wrapper */
 .vn-map-wrapper .select2-container--default .select2-selection--single {
-    background: var(--s2-light-bg);
-    border: 1px solid var(--s2-light-bdr);
+    background: rgba(255,255,255,0.9);
+    border: 1px solid rgba(18,48,58,0.18);
     border-radius: 8px;
     height: var(--vn-input-h);
-    transition: border-color var(--vnm-transition), box-shadow var(--vnm-transition);
+    transition: border-color var(--vn-ease), box-shadow var(--vn-ease);
 }
 
 .vn-map-wrapper .select2-container--default.select2-container--focus
     .select2-selection--single,
 .vn-map-wrapper .select2-container--default.select2-container--open
     .select2-selection--single {
-    border-color: var(--vnm-teal);
-    box-shadow: 0 0 0 3px rgba(44,122,139,0.18);
+    border-color: var(--sid-sage);
+    box-shadow: 0 0 0 3px rgba(122,158,142,0.15);
+    background: #fff;
 }
 
 .vn-map-wrapper .select2-container--default
     .select2-selection--single .select2-selection__rendered {
-    color: var(--s2-light-text);
+    color: #12303a;
     font-size: 0.86rem;
-    font-weight: 500;
+    font-weight: 400;
+    font-family: var(--vn-font);
     line-height: var(--vn-input-h);
-    padding-left: 11px;
+    padding-left: 10px;
     padding-right: 28px;
 }
 
 .vn-map-wrapper .select2-container--default
     .select2-selection--single .select2-selection__placeholder {
     color: var(--s2-light-ph);
+    font-weight: 300;
 }
 
 .vn-map-wrapper .select2-container--default
@@ -617,28 +664,25 @@
 
 .vn-map-wrapper .select2-container--default
     .select2-selection--single .select2-selection__arrow b {
-    border-color: #6b8a93 transparent transparent transparent;
+    border-color: var(--sid-sage) transparent transparent transparent;
 }
 
-/* X de clear */
 .vn-map-wrapper .select2-container--default
     .select2-selection--single .select2-selection__clear {
-    color: #6b8a93;
+    color: var(--sid-sage);
     margin-right: 4px;
 }
 
 /* ═══════════════════════════════════════════════
-   SELECT 2 — ZONA FORM CARD (DARK)
-   Clase .vn2-dark añadida por JS al contenedor
+   SELECT2 — ZONA FORM CARD (DARK)
    ═══════════════════════════════════════════════ */
-
 .vn-form-card .select2-container--default .select2-selection--single,
 .select2-container.vn2-dark .select2-selection--single {
     background: var(--s2-dark-bg);
     border: 1px solid var(--s2-dark-bdr);
     border-radius: 8px;
     height: var(--vn-input-h);
-    transition: border-color var(--vnm-transition), box-shadow var(--vnm-transition);
+    transition: border-color var(--vn-ease), box-shadow var(--vn-ease);
 }
 
 .vn-form-card .select2-container--default.select2-container--focus
@@ -647,8 +691,8 @@
     .select2-selection--single,
 .select2-container.vn2-dark.select2-container--focus .select2-selection--single,
 .select2-container.vn2-dark.select2-container--open .select2-selection--single {
-    border-color: rgba(44,122,139,0.7);
-    box-shadow: 0 0 0 3px rgba(44,122,139,0.18);
+    border-color: var(--sid-sage);
+    box-shadow: 0 0 0 3px rgba(122,158,142,0.12);
 }
 
 .vn-form-card .select2-container--default
@@ -656,9 +700,10 @@
 .select2-container.vn2-dark .select2-selection--single .select2-selection__rendered {
     color: var(--s2-dark-text);
     font-size: 0.86rem;
-    font-weight: 500;
+    font-weight: 400;
+    font-family: var(--vn-font);
     line-height: var(--vn-input-h);
-    padding-left: 11px;
+    padding-left: 10px;
     padding-right: 28px;
 }
 
@@ -666,6 +711,7 @@
     .select2-selection--single .select2-selection__placeholder,
 .select2-container.vn2-dark .select2-selection--single .select2-selection__placeholder {
     color: var(--s2-dark-ph);
+    font-weight: 300;
 }
 
 .vn-form-card .select2-container--default
@@ -678,109 +724,97 @@
 .vn-form-card .select2-container--default
     .select2-selection--single .select2-selection__arrow b,
 .select2-container.vn2-dark .select2-selection--single .select2-selection__arrow b {
-    border-color: rgba(230,215,184,0.45) transparent transparent transparent;
+    border-color: rgba(168,197,184,0.5) transparent transparent transparent;
 }
 
 .vn-form-card .select2-container--default
     .select2-selection--single .select2-selection__clear,
 .select2-container.vn2-dark .select2-selection--single .select2-selection__clear {
-    color: rgba(230,215,184,0.5);
+    color: rgba(168,197,184,0.5);
 }
 
 /* ═══════════════════════════════════════════════
-   SELECT 2 — DROPDOWN (siempre oscuro,
-   teleportado fuera del wrapper por dropdownParent)
+   SELECT2 — DROPDOWN
    ═══════════════════════════════════════════════ */
-
-/* Contenedor dropdown global */
 .select2-container--default .select2-dropdown {
     background: var(--s2-dd-bg);
     border: 1px solid var(--s2-dd-bdr);
     border-radius: 10px;
-    box-shadow: 0 10px 32px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 32px rgba(0,0,0,0.45);
     overflow: hidden;
+    font-family: var(--vn-font);
 }
 
-/* Búsqueda */
 .select2-container--default .select2-search--dropdown {
     padding: 8px 10px 4px;
     background: var(--s2-dd-bg);
 }
 
 .select2-container--default .select2-search--dropdown .select2-search__field {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(122,158,142,0.2);
     border-radius: 6px;
     color: var(--vnm-white);
     font-size: 0.84rem;
+    font-family: var(--vn-font);
     padding: 6px 10px;
     outline: none;
     width: 100%;
-    transition: border-color var(--vnm-transition);
+    transition: border-color var(--vn-ease);
 }
 
 .select2-container--default .select2-search--dropdown .select2-search__field:focus {
-    border-color: rgba(44,122,139,0.6);
-    box-shadow: 0 0 0 2px rgba(44,122,139,0.15);
+    border-color: var(--sid-sage);
+    box-shadow: 0 0 0 2px rgba(122,158,142,0.12);
 }
 
 .select2-container--default .select2-search--dropdown .select2-search__field::placeholder {
-    color: rgba(242,245,247,0.38);
+    color: rgba(242,245,247,0.35);
 }
 
-/* Opciones */
 .select2-container--default .select2-results__options {
     max-height: 220px;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(44,122,139,0.4) transparent;
+    scrollbar-color: rgba(122,158,142,0.35) transparent;
 }
 
 .select2-container--default .select2-results__option {
     color: var(--s2-dd-text);
-    font-size: 0.85rem;
+    font-size: 0.84rem;
     padding: 8px 13px;
-    transition: background 0.14s ease;
+    transition: background 0.12s ease;
+    font-family: var(--vn-font);
 }
 
-.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+.select2-container--default
+    .select2-results__option--highlighted.select2-results__option--selectable {
     background: var(--s2-dd-hl);
     color: #fff;
 }
 
 .select2-container--default .select2-results__option[aria-selected="true"] {
     background: var(--s2-dd-sel);
-    color: var(--vnm-gold);
-    font-weight: 600;
+    color: var(--sid-sage-lt);
+    font-weight: 500;
 }
 
 .select2-container--default .select2-results__option[aria-disabled="true"] {
-    color: rgba(219,231,236,0.35);
+    color: rgba(219,231,236,0.3);
 }
 
-/* "No results" / "Elige municipio primero" */
 .select2-container--default .select2-results__message {
-    color: rgba(219,231,236,0.5);
-    font-size: 0.82rem;
+    color: rgba(219,231,236,0.45);
+    font-size: 0.8rem;
     padding: 10px 13px;
     font-style: italic;
 }
 
-/* Scrollbar webkit */
-.select2-container--default .select2-results__options::-webkit-scrollbar {
-    width: 5px;
-}
+.select2-container--default .select2-results__options::-webkit-scrollbar { width: 4px; }
 .select2-container--default .select2-results__options::-webkit-scrollbar-thumb {
-    background: rgba(44,122,139,0.45);
+    background: rgba(122,158,142,0.4);
     border-radius: 4px;
 }
-
-/* ─── Dropdown cuando viene de map-wrapper vs form-card ───
-   El dropdown se teleporta según dropdownParent.
-   Cuando el dropdownParent es .vn-map-wrapper, el dropdown
-   queda DENTRO del wrapper y necesita ancho completo.
-   Cuando es .vn-form-card, idem.
-   El JS ya hace dropdownParent correcto; el z-index cubre el mapa. */
 
 .vn-map-wrapper .select2-dropdown,
 .vn-form-card   .select2-dropdown {
@@ -791,45 +825,31 @@
    RESPONSIVE
    ═══════════════════════════════════════════════ */
 @media (max-width: 1100px) {
-    .vn-layout-grid {
-        grid-template-columns: 1fr 390px;
-        gap: 20px;
-    }
+    .vn-layout-grid { grid-template-columns: 1fr 395px; gap: 20px; }
 }
 
 @media (max-width: 920px) {
-    .vn-layout-grid {
-        grid-template-columns: 1fr;
-    }
+    .vn-layout-grid { grid-template-columns: 1fr; }
     .vn-map-col { position: static; }
-    #vn-leaflet-map { height: 300px; }
-    .vn-home-hero { padding: 30px 0 24px; }
-    .vn-main-section { padding: 24px 0 48px; }
-    /* Hero responsive: stats debajo */
-    .vn-hero-inner {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 24px;
-    }
-    .vn-hero-stats {
-        width: 100%;
-        justify-content: flex-start;
-    }
-    .vn-hero-stat { min-width: 80px; padding: 10px 14px; }
+    #vn-leaflet-map { height: 295px; }
+    .vn-home-hero { padding: 36px 0 28px; }
+    .vn-main-section { padding: 28px 0 52px; }
+    .vn-hero-inner { flex-direction: column; align-items: flex-start; gap: 26px; }
+    .vn-hero-stats { width: 100%; justify-content: flex-start; }
+    .vn-hero-stat { min-width: 80px; padding: 12px 14px; }
 }
 
 @media (max-width: 600px) {
-    .vn-layout-grid { padding: 0 12px; }
+    .vn-layout-grid { padding: 0 14px; }
     .vn-location-row { grid-template-columns: 1fr 1fr; }
     .vn-location-row .vn-loc-field:last-child { grid-column: span 2; }
     .vn-location-row--2col { grid-template-columns: 1fr; }
-    .vn-counters-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .vn-counters-grid { gap: 7px; }
     .vn-m2-row { grid-template-columns: 1fr; }
-    /* Advanced fields: mantener 2 col incluso en mobile */
     .vn-advanced-fields .vn-m2-row { grid-template-columns: 1fr 1fr !important; gap: 8px; }
-    .vn-hero-title { font-size: 1.4rem; }
-    .vn-hero-stats { gap: 8px; }
-    .vn-hero-stat { min-width: 70px; padding: 8px 10px; }
+    .vn-hero-title { font-size: 1.38rem; }
+    .vn-hero-stats { gap: 8px; flex-wrap: wrap; }
+    .vn-hero-stat { min-width: 72px; padding: 10px 12px; }
     .vn-hero-stat__num { font-size: 1.3rem; }
-    #vn-leaflet-map { height: 250px; }
+    #vn-leaflet-map { height: 245px; }
 }
